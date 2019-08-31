@@ -49,15 +49,15 @@ end
 
 -- lose life and handle gameover
 function lose_life()
-		sfx(2)
-		lives -= 1
-		wait(20)
-		
-		if lives > 0 then
-			serve_ball()
-		else
-			mode="gameover"
-		end
+	sfx(2)
+	lives -= 1
+	wait(20)
+	
+	if lives > 0 then
+		serve_ball()
+	else
+		mode="gameover"
+	end
 end
 
 -- only start from ❎
@@ -108,7 +108,7 @@ function draw_gameover()
 	
 	-- bar in the middle for text
 	rectfill(0,vcenter()-11,127,vcenter()+15,0)
-	
+
 	local text1="game over"
 	local text2="press ❎ to restart"
 	print(text1,hcenter(text1),vcenter()-7,8)
@@ -120,13 +120,14 @@ end
 function init_ball()
 	-- make things interesting
 	-- with random positions
- --	ball_x = flr(rnd(100))+10
- ball_x=pad_x+pad_w/2
+	-- ball_x = flr(rnd(100))+10
+	ball_x=pad_x+pad_w/2
 	ball_y=pad_y-pad_h
 	--ball_dx = rnd(1) > 0.5 and -1 or 
 	ball_dx=1
 	ball_dy=-1
 	ball_r=2
+	ball_a=1
 	ball_sticky=true
 end
 
@@ -165,6 +166,19 @@ function update_ball()
 	prev_y = ball_y
 	ball_y += ball_dy * scale
 	
+	-- check if the ball hits screen
+	test_ball_screen(prev_x,prev_y)
+
+	-- check if ball hit paddle
+	test_ball_paddle(prev_x,prev_y)
+
+	-- check if the ball hit bricks
+	test_ball_bricks(prev_x,prev_y)
+end
+
+-- check if the ball hit the
+-- edges of the screen
+function test_ball_screen(prev_x,prev_y)
 	-- bounce off left/right sides
 	if ball_x > 127-ball_r or ball_x < ball_r then
 		bounce_x(0)
@@ -179,24 +193,50 @@ function update_ball()
 	if ball_y > 127-ball_r then
 		lose_life()
 	end
-	
-	-- check if ball hit paddle
+end
+
+-- check if the ball hit the
+-- paddle and bounce accordingly
+function test_ball_paddle(prev_x,prev_y)
 	if ball_collide(pad_x,pad_y,pad_w,pad_h) then
 		if collided_vertical(prev_y,ball_y,pad_y-ball_r,pad_y+pad_h+ball_r) then
-				bounce_y(1)
-				score+=1
+			-- do some fancy stuff to
+			-- make bouncing feel nice
+			if abs(pad_dx) > 2 then
+				if sign(ball_dx) == sign(pad_dx) then
+					-- flatten angle
+					set_ball_angle((ball_a-1)%3)
+				else
+					if ball_ang==2 then
+						-- normal angle
+						ball_dx = -ball_dx
+					else
+						-- raise angle
+						set_ball_angle((ball_a+1)%3)
+					end
+				end
+			else
+				set_ball_angle(1)
+			end
+			bounce_y(1)
+			score+=1
 		end
-		if	collided_horizontal(prev_x,ball_x,pad_x-ball_r,pad_x+pad_w+ball_r)	then
-				bounce_x(1)
-				score+=1
+		if collided_horizontal(prev_x,ball_x,pad_x-ball_r,pad_x+pad_w+ball_r)	then
+			bounce_x(1)
+			score+=1
 		end
 	end
-	
+end
+
+-- check if the ball hit any
+-- bricks, but only bounce off
+-- of the first one each frame
+function test_ball_bricks(prev_x,prev_y)		
 	-- only bounce once per frame
 	local has_bounced=false
-	
- -- for each brick...
- for i=1,num_bricks do
+
+	-- for each brick...
+	for i=1,num_bricks do
 		if brick_v[i] and	ball_collide(brick_x[i],brick_y[i],brick_w,brick_h) then
 			if collided_vertical(prev_y,ball_y,brick_y[i]-ball_r,brick_y[i]+brick_h+ball_r) then
 				brick_v[i]=false
@@ -206,15 +246,32 @@ function update_ball()
 					has_bounced=true
 				end
 			end
-			if	collided_horizontal(prev_x,ball_x,brick_x[i]-ball_r,brick_x[i]+brick_w+ball_r)	then
- 			brick_v[i]=false
- 			score += 10
- 		 if not has_bounced then
-		 	 bounce_x(3)
+			if collided_horizontal(prev_x,ball_x,brick_x[i]-ball_r,brick_x[i]+brick_w+ball_r) then
+				brick_v[i]=false
+				score += 10
+				if not has_bounced then
+					bounce_x(3)
 					has_bounced=true
-		 	end
-		 end
+				end
+			end
 		end
+	end
+end
+
+-- set new ball angle so that
+-- it bounces in interesting
+-- ways off of the paddle
+function set_ball_angle(a)
+	ball_angle=a
+	if a==2 then
+		ball_dx=1.3*sign(ball_dx)
+		ball_dy=0.5*sign(ball_dy)
+	elseif a==0 then
+		ball_dx=0.5*sign(ball_dx)
+		ball_dy=1.3*sign(ball_dy)
+	else
+		ball_dx=sign(ball_dx)
+		ball_dy=sign(ball_dy)
 	end
 end
 
@@ -222,9 +279,9 @@ end
 -- the bounds that were passed
 function ball_collide(x,y,w,h)
 	if ball_x-ball_r > x+w or
-				ball_x+ball_r < x or
-			 ball_y-ball_r > y+h or
-				ball_y+ball_r < y then
+			ball_x+ball_r < x or
+			ball_y-ball_r > y+h or
+			ball_y+ball_r < y then
 		return false
 	end
 	
@@ -247,7 +304,7 @@ function bounce_y(fx)
 end
 
 function draw_ball()
-	circfill(ball_x,ball_y,ball_r,10)
+	circfill(round(ball_x),round(ball_y),ball_r,10)
 	if ball_sticky then
 		line(ball_x+ball_dx*4,ball_y+ball_dy*4,ball_x+ball_dx*6,ball_y+ball_dy*6,10)
 	end
@@ -258,11 +315,11 @@ end
 -- always init paddle around the
 -- middle at the bottom
 function init_paddle()
-	pad_x=52
-	pad_y=120
-	pad_dx=0
 	pad_w=24
 	pad_h=3
+	pad_x=(127-pad_w)/2
+	pad_y=120
+	pad_dx=0
 end
 
 -- move paddle l/r based on ⬅️➡️
@@ -288,6 +345,7 @@ function init_bricks()
 	num_columns=10
 	num_rows=6
 	num_bricks=num_columns*num_rows
+
 	brick_x={}
 	brick_y={}
 	brick_v={}
@@ -298,7 +356,7 @@ function init_bricks()
 	for y=1,num_rows do
 		for x=1,num_columns do
 			add(brick_x,4+(x-1)*(brick_w+2))
-			add(brick_y,8+(6*y))
+			add(brick_y,10+(6*y))
 			add(brick_v,true)
 		end
 	end
@@ -326,15 +384,15 @@ end
 -- combine u/d checks here
 function collided_vertical(prev,new,top,bottom)
 	return
-			collided_top(prev,new,top) or
-			collided_bottom(prev,new,bottom)
+		collided_top(prev,new,top) or
+		collided_bottom(prev,new,bottom)
 end
 
 -- combine l/r checks here
 function collided_horizontal(prev,new,left,right)
 	return
-			collided_left(prev,new,left) or
-			collided_right(prev,new,right)
+		collided_left(prev,new,left) or
+		collided_right(prev,new,right)
 end
 
 -- check if something will
@@ -381,6 +439,17 @@ function vcenter()
   -- string height in pixels,
   -- cut in half
   return 61
+end
+
+function sign(n)
+	if n>0 then return 1 end
+	if n < 0 then return -1 end
+	return 0
+end
+
+function round(n)
+	if n-flr(n) > 0.5 then return flr(n)+1 end
+	return flr(n)
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
