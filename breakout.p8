@@ -35,6 +35,7 @@ function start_game()
 	mode="game"
 	lives=3
 	score=0
+	combo=1
 	init_paddle()
 	init_ball()
 	init_bricks()
@@ -51,6 +52,7 @@ end
 function lose_life()
 	sfx(2)
 	lives -= 1
+	combo = 0
 	wait(20)
 	
 	if lives > 0 then
@@ -91,6 +93,7 @@ function draw_hud()
 		print("♥",118-i*7,0,8)
 	end
 	print("score: "..score,2,0,7)
+	print("combo: "..combo.."x",60,0,7)
 end
 
 -- start mode text
@@ -108,7 +111,7 @@ function draw_gameover()
 	
 	-- bar in the middle for text
 	rectfill(0,vcenter()-11,127,vcenter()+15,0)
-
+	
 	local text1="game over"
 	local text2="press ❎ to restart"
 	print(text1,hcenter(text1),vcenter()-7,8)
@@ -118,12 +121,8 @@ end
 -- ball
 
 function init_ball()
-	-- make things interesting
-	-- with random positions
-	-- ball_x = flr(rnd(100))+10
 	ball_x=pad_x+pad_w/2
 	ball_y=pad_y-pad_h
-	--ball_dx = rnd(1) > 0.5 and -1 or 
 	ball_dx=1
 	ball_dy=-1
 	ball_r=2
@@ -168,7 +167,7 @@ function update_ball()
 	
 	-- check if the ball hits screen
 	test_ball_screen(prev_x,prev_y)
-
+	
 	-- check if ball hit paddle
 	test_ball_paddle(prev_x,prev_y)
 
@@ -199,6 +198,9 @@ end
 -- paddle and bounce accordingly
 function test_ball_paddle(prev_x,prev_y)
 	if ball_collide(pad_x,pad_y,pad_w,pad_h) then
+		-- reset combo when paddle hit
+		combo=1
+		
 		if collided_vertical(prev_y,ball_y,pad_y-ball_r,pad_y+pad_h+ball_r) then
 			-- do some fancy stuff to
 			-- make bouncing feel nice
@@ -219,11 +221,9 @@ function test_ball_paddle(prev_x,prev_y)
 				set_ball_angle(1)
 			end
 			bounce_y(1)
-			score+=1
 		end
 		if collided_horizontal(prev_x,ball_x,pad_x-ball_r,pad_x+pad_w+ball_r)	then
 			bounce_x(1)
-			score+=1
 		end
 	end
 end
@@ -234,26 +234,21 @@ end
 function test_ball_bricks(prev_x,prev_y)		
 	-- only bounce once per frame
 	local has_bounced=false
-
+	
 	-- for each brick...
 	for i=1,num_bricks do
 		if brick_v[i] and	ball_collide(brick_x[i],brick_y[i],brick_w,brick_h) then
-			if collided_vertical(prev_y,ball_y,brick_y[i]-ball_r,brick_y[i]+brick_h+ball_r) then
-				brick_v[i]=false
-				score += 10
-				if not has_bounced then
-					bounce_y(3)
-					has_bounced=true
-				end
+			-- brick was hit, now figure
+			-- out if we need to bounce
+			-- and in what direction
+			brick_hit(i)
+			if collided_vertical(prev_y,ball_y,brick_y[i]-ball_r,brick_y[i]+brick_h+ball_r) and not has_bounced then
+					bounce_y()
 			end
-			if collided_horizontal(prev_x,ball_x,brick_x[i]-ball_r,brick_x[i]+brick_w+ball_r) then
-				brick_v[i]=false
-				score += 10
-				if not has_bounced then
-					bounce_x(3)
-					has_bounced=true
-				end
+			if collided_horizontal(prev_x,ball_x,brick_x[i]-ball_r,brick_x[i]+brick_w+ball_r) and not has_bounced then
+				bounce_x()
 			end
+			has_bounced=true
 		end
 	end
 end
@@ -294,13 +289,13 @@ end
 -- 2 does not always destroy both
 function bounce_x(fx)
 	ball_dx = -ball_dx
-	sfx(fx)
+	if fx ~= nil then sfx(fx) end
 end
 
 -- flip y dir and play sound
 function bounce_y(fx)
 	ball_dy = -ball_dy
-	sfx(fx)
+	if fx ~= nil then sfx(fx) end
 end
 
 function draw_ball()
@@ -345,7 +340,7 @@ function init_bricks()
 	num_columns=10
 	num_rows=6
 	num_bricks=num_columns*num_rows
-
+	
 	brick_x={}
 	brick_y={}
 	brick_v={}
@@ -366,6 +361,16 @@ function update_bricks()
 -- noop for now... they are
 -- not sentient - only the
 -- ball knows what is happening
+end
+
+-- when a brick is hit, play
+-- a sound, increment combo and
+-- increase score
+function brick_hit(i)
+	brick_v[i]=false
+	score += 10*combo
+	sfx(((combo-1)%7) + 3)
+	combo += 1
 end
 
 -- let the magic happen
@@ -448,8 +453,9 @@ function sign(n)
 end
 
 function round(n)
-	if n-flr(n) > 0.5 then return flr(n)+1 end
-	return flr(n)
+	if n-flr(n) > 0.5 then return flr(n)+1
+	else return flr(n)
+	end
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -462,4 +468,10 @@ __sfx__
 0001000018360183601835018330183201831018300183001d700187001570013700117000f7000d7000870003700107000870008700087000870007700077000770007700077000770000000000000000000000
 00010000243602436024350243302432024310173000d3000b3000d3000f300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000000000000
 000300001e3601d350183501134015340163301332015310073100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000300003b350353302f320353002130026300213001c300083000630006300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300
+000200002b36030360303503033034300213001c30008300063000630000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
+000200002d36032360323503233036300213001c30008300063000630000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
+000200002e36034360343503433037300213001c30008300063000630000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
+000200003036036360363503633039300213001c30008300063000630000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
+00020000323603836038350383303b300213001c30008300063000630000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
+00020000343603a3603a3503a3303b300213001c30008300063000630000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
+000200003234035360393503d33035320383503e340383203b3303f31000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
