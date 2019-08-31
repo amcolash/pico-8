@@ -121,11 +121,13 @@ function init_ball()
 	-- make things interesting
 	-- with random positions
  --	ball_x = flr(rnd(100))+10
- ball_x = 5
-	ball_y = 70
-	ball_dx = rnd(1) > 0.5 and -1 or 1
-	ball_dy = 1
-	ball_r = 2
+ ball_x=pad_x+pad_w/2
+	ball_y=pad_y-pad_h
+	--ball_dx = rnd(1) > 0.5 and -1 or 
+	ball_dx=1
+	ball_dy=-1
+	ball_r=2
+	ball_sticky=true
 end
 
 function serve_ball()
@@ -133,6 +135,24 @@ function serve_ball()
 end
 
 function update_ball()
+	-- if the ball has not launched
+	-- then follow the paddle
+	if ball_sticky then
+		ball_x=pad_x+pad_w/2
+		
+		-- direction based on l/r
+		if btn(⬅️) then ball_dx=-1 end
+		if btn(➡️) then ball_dx=1 end
+		
+		-- launch the ball
+		if btnp(5) then
+			ball_sticky=false
+		end
+		
+		-- don't update ball yet
+		return
+	end
+
 	-- fancy speedup/slowdown value
 	local prev_x,prev_y,scale
 	scale = 1
@@ -163,15 +183,12 @@ function update_ball()
 	-- check if ball hit paddle
 	if ball_collide(pad_x,pad_y,pad_w,pad_h) then
 		if collided_vertical(prev_y,ball_y,pad_y-ball_r,pad_y+pad_h+ball_r) then
-				if ball_x > pad_x+pad_w/2 then
-					ball_dx = abs(ball_dx)
-				else
-					ball_dx = -abs(ball_dx)
-				end
 				bounce_y(1)
+				score+=1
 		end
 		if	collided_horizontal(prev_x,ball_x,pad_x-ball_r,pad_x+pad_w+ball_r)	then
 				bounce_x(1)
+				score+=1
 		end
 	end
 	
@@ -231,6 +248,9 @@ end
 
 function draw_ball()
 	circfill(ball_x,ball_y,ball_r,10)
+	if ball_sticky then
+		line(ball_x+ball_dx*4,ball_y+ball_dy*4,ball_x+ball_dx*6,ball_y+ball_dy*6,10)
+	end
 end
 -->8
 -- paddle
