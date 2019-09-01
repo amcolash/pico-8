@@ -458,6 +458,11 @@ function draw_bricks()
 	for i=1,num_bricks do
 		if brick_s[i]>0 then
 			rectfill(brick_x[i],brick_y[i],brick_x[i]+brick_w,brick_y[i]+brick_h,get_brick_color(brick_s[i]))
+			-- fancy bricks?
+			pset(brick_x[i],brick_y[i],1)
+			pset(brick_x[i]+brick_w,brick_y[i],1)
+			pset(brick_x[i],brick_y[i]+brick_h,1)
+			pset(brick_x[i]+brick_w,brick_y[i]+brick_h,1)
 		end
 	end
 end
