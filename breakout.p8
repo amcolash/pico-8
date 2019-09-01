@@ -50,7 +50,7 @@ end
 function update_game()
 	update_paddle()
 	update_ball()
-	update_bricks()
+	update_bricks()	
 end
 
 -- lose life and handle gameover
@@ -263,7 +263,7 @@ function test_ball_bricks(prev_x,prev_y)
 	
 	-- for each brick...
 	for i=1,num_bricks do
-		if brick_v[i] and	ball_collide(brick_x[i],brick_y[i],brick_w,brick_h) then
+		if brick_s[i]>0 and	ball_collide(brick_x[i],brick_y[i],brick_w,brick_h) then
 			-- brick was hit, now figure
 			-- out if we need to bounce
 			-- and in what direction
@@ -369,10 +369,9 @@ function init_bricks()
 
 	brick_x={}
 	brick_y={}
-	brick_v={}
+	brick_s={}
 	brick_w=12
 	brick_h=4
-	brick_c=12
 
 	local level=generate_level(levels[level])
 	i=0
@@ -381,7 +380,7 @@ function init_bricks()
 			i+=1
 			add(brick_x,2+(x-1)*(brick_w+2))
 			add(brick_y,10+(6*y))
-			add(brick_v,sub(level,i,i)=="b")
+			add(brick_s,get_brick_status(sub(level,i,i)))
 		end
 	end
 end
@@ -393,21 +392,55 @@ function update_bricks()
 	end
 end
 
+-- status/health for brick type
+function get_brick_status(t)
+	if t=="e" then return 0
+	-- 2 hit
+	elseif t=="n" then return 2
+	-- 3 hit
+	elseif t=="m" then return 3
+	-- exploding
+	elseif t=="x" then return 8
+	-- invincible
+	elseif t=="i" then return 9
+	-- normal
+	else return 1 end
+end
+
+-- get color of brick based on
+-- brick status
+function get_brick_color(s)
+	if s==8 then return 8
+	elseif s==9 then return 5
+	else return level_color[level]+s-1 end
+end
+
 -- when a brick is hit, play
 -- a sound, increment combo and
 -- increase score
 function brick_hit(i)
-	brick_v[i]=false
-	score += 10*combo
-	sfx(min(combo-1,6) + 3)
-	combo += 1
+	local status=brick_s[i]
+	if status > 0 then
+		if status==8 then
+			--explode
+			sfx(10)
+		elseif status==9 then
+			--invincible
+			sfx(11)
+		else
+			brick_s[i]-=1
+			score += 10*combo
+			sfx(min(combo-1,6) + 3)
+			combo += 1
+		end
+	end
 end
 
 -- let the magic happen
 function draw_bricks()
 	for i=1,num_bricks do
-		if brick_v[i] then
-			rectfill(brick_x[i],brick_y[i],brick_x[i]+brick_w,brick_y[i]+brick_h,brick_c)
+		if brick_s[i]>0 then
+			rectfill(brick_x[i],brick_y[i],brick_x[i]+brick_w,brick_y[i]+brick_h,get_brick_color(brick_s[i]))
 		end
 	end
 end
@@ -418,23 +451,25 @@ end
 -- string where different chars
 -- mean different things
 
--- b -> block
+-- b -> normal block
+-- n -> 2 health block
+-- m -> 3 health block
+-- i -> invincible block
+-- x -> exploding
 -- e -> empty
 -- / -> e's to end of row
--- x -> fill rest with e's
+-- z -> fill rest with e's
 -- number -> fill based on prev
 
 -- i.e "b5/" -> 5 blocks, 4 empty, repeated each row
 -- "b2e2x" -> 2 blocks, 2 empty, rest of level empty
 
-l1="e4bx"
-l2="e5bx"
-l3="e4bx"
-l4="e5bx"
+l1="e3bnmxiz"
 --l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
 --l3="be"
 --l4="b2e2b2/"
-levels={l1,l2,l3,l4}
+levels={l1,l1,l1,l1}
+level_color={12,11,9,14}
 
 -- gnerate a level based on the
 -- syntax that is defined above
@@ -451,7 +486,7 @@ function generate_level(lvl)
 	while counter < num_bricks do
 		for i=1,#lvl do
 			cur=sub(lvl,i,i)
-			if cur=="x" then
+			if cur=="z" then
 				while counter < num_bricks do
 					final = final.."e"
 					counter+=1
@@ -483,8 +518,8 @@ end
 
 -- check if all bricks are cleared
 function level_complete()
-	for i=1,#brick_v do
-		if brick_v[i] then return false end
+	for i=1,#brick_s do
+		if brick_s[i]>0 and brick_s[i]<8 then return false end
 	end
 	return true
 end
@@ -598,3 +633,5 @@ __sfx__
 00020000323603836038350383303b300213001c30008300063000630000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
 00020000343603a3603a3503a3303b300213001c30008300063000630000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
 000200003234035360393503d33035320383503e340383203b3303f31000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
+000200002f6502e6502964024640216401e6301b63019630176301563013630116300f6200d6200b6200762005620026100061008600056000160000300003000030000300003000030000300003000030000300
+000200002b350313303c32028300233001a3001830000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300
