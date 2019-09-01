@@ -419,18 +419,35 @@ end
 -- a sound, increment combo and
 -- increase score
 function brick_hit(i)
+	if i <=0 or i>num_bricks then return end
+	
 	local status=brick_s[i]
 	if status > 0 then
-		if status==8 then
-			--explode
-			sfx(10)
-		elseif status==9 then
-			--invincible
+		if status==9 then
+			-- invincible
 			sfx(11)
 		else
-			brick_s[i]-=1
+			if status==8 then
+				-- explode
+				brick_s[i]=0
+				sfx(10)
+
+				-- hit surrounding bricks
+				brick_hit(i-num_columns-1)
+				brick_hit(i-num_columns)
+				brick_hit(i-num_columns+1)
+				brick_hit(i-1)
+				brick_hit(i+1)
+				brick_hit(i+num_columns-1)
+				brick_hit(i+num_columns)
+				brick_hit(i+num_columns+1)
+			else
+				-- normal
+				brick_s[i]-=1
+				sfx(min(combo-1,6) + 3)
+			end
+			
 			score += 10*combo
-			sfx(min(combo-1,6) + 3)
 			combo += 1
 		end
 	end
@@ -464,7 +481,7 @@ end
 -- i.e "b5/" -> 5 blocks, 4 empty, repeated each row
 -- "b2e2x" -> 2 blocks, 2 empty, rest of level empty
 
-l1="e3bnmxiz"
+l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
 --l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
 --l3="be"
 --l4="b2e2b2/"
