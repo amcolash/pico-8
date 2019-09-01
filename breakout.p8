@@ -337,22 +337,25 @@ end
 -- bricks
 
 function init_bricks()
-	num_columns=10
+	num_columns=9
 	num_rows=6
 	num_bricks=num_columns*num_rows
-	
+
 	brick_x={}
 	brick_y={}
 	brick_v={}
-	brick_w=10
+	brick_w=12
 	brick_h=4
 	brick_c=12
 
+	local level=generate_level(level_1)
+	local i=0
 	for y=1,num_rows do
 		for x=1,num_columns do
-			add(brick_x,4+(x-1)*(brick_w+2))
+			i+=1
+			add(brick_x,2+(x-1)*(brick_w+2))
 			add(brick_y,10+(6*y))
-			add(brick_v,true)
+			add(brick_v,sub(level,i,i)=="b")
 		end
 	end
 end
@@ -369,7 +372,7 @@ end
 function brick_hit(i)
 	brick_v[i]=false
 	score += 10*combo
-	sfx(((combo-1)%7) + 3)
+	sfx(min(combo-1,6) + 3)
 	combo += 1
 end
 
@@ -381,6 +384,45 @@ function draw_bricks()
 		end
 	end
 end
+-->8
+-- levels
+
+level_1="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
+
+function generate_level(lvl)
+	local counter=0
+	local final=""
+	local i,j,x,y,prev,cur
+	
+	while counter < num_bricks do
+		for i=1,#lvl do
+			cur=sub(lvl,i,i)
+			if cur=="/" then
+				y=flr(counter/num_columns)*num_columns
+				x=counter-y
+				if x>0 then
+					for j=x,num_columns-1 do
+						final = final.."e"
+						counter+=1
+					end
+				end
+			elseif cur > "0" and cur <= "9" then
+				for j=1,cur-1 do
+					final = final..prev
+					counter+=1
+				end
+			else
+				final = final..cur
+				counter+=1
+			end
+			prev=cur
+		end
+	end
+	
+	return final
+end
+-->8
+-- ?
 -->8
 -- utils
 
@@ -429,7 +471,7 @@ function wait(a)
 	for i = 1,a do flip() end
 end
 
--- string utils --
+-- string positioning --
 function hcenter(s)
   -- screen center minus the
   -- string length times the 
@@ -446,6 +488,7 @@ function vcenter()
   return 61
 end
 
+-- math utils --
 function sign(n)
 	if n>0 then return 1 end
 	if n < 0 then return -1 end
