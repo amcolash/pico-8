@@ -15,6 +15,8 @@ function _update60()
 		update_start()
 	elseif mode=="gameover" then
 		update_gameover()
+	elseif mode=="stageclear" then
+		update_stageclear()
 	end
 end
 
@@ -25,6 +27,8 @@ function _draw()
 		draw_start()
 	elseif mode=="gameover" then
 		draw_gameover()
+	elseif mode=="stageclear" then
+		draw_stageclear()
 	end
 end
 -->8
@@ -66,6 +70,13 @@ end
 function update_start()
 	if btn(❎) then
 	 start_game()
+	end
+end
+
+-- only continue from ❎
+function update_stageclear()
+	if btn(❎) then
+		mode="game"
 	end
 end
 
@@ -116,7 +127,18 @@ function draw_gameover()
 	
 	local text1="game over"
 	local text2="press ❎ to restart"
-	print(text1,hcenter(text1),vcenter()-7,8)
+	print(text1,hcenter(text1),vcenter()-7,lives > 0 and 11 or 8)
+	print(text2,hcenter(text2),vcenter()+7,6)
+end
+
+-- stageclear mode text
+function draw_stageclear()
+	-- bar in the middle for text
+	rectfill(0,vcenter()-11,127,vcenter()+15,0)
+
+	local text1="level "..(level-1).." complete"
+	local text2="press ❎ to contine"
+	print(text1,hcenter(text1),vcenter()-7,11)
 	print(text2,hcenter(text2),vcenter()+7,6)
 end
 -->8
@@ -474,6 +496,7 @@ function next_level()
 	level+=1
 	if level <= #levels then
 		init_bricks()
+		mode="stageclear"
 	else
 		mode="gameover"
 	end
