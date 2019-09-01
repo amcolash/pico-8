@@ -364,6 +364,7 @@ function init_bricks()
 	end
 end
 
+-- check the level is complete
 function update_bricks()
 	if level_complete() then
 		next_level()
@@ -391,15 +392,35 @@ end
 -->8
 -- levels
 
-l1="e4b//////"
-l2="e5b//////"
-l3="e4b//////"
-l4="e5b//////"
+-- levels are created with a
+-- string where different chars
+-- mean different things
+
+-- b -> block
+-- e -> empty
+-- / -> e's to end of row
+-- x -> fill rest with e's
+-- number -> fill based on prev
+
+-- i.e "b5/" -> 5 blocks, 4 empty, repeated each row
+-- "b2e2x" -> 2 blocks, 2 empty, rest of level empty
+
+l1="e4bx"
+l2="e5bx"
+l3="e4bx"
+l4="e5bx"
 --l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
 --l3="be"
 --l4="b2e2b2/"
 levels={l1,l2,l3,l4}
 
+-- gnerate a level based on the
+-- syntax that is defined above
+-- this level is a 1d array that
+-- will be used to turn on/off
+-- blocks and has a length of at
+-- least num_bricks, but may be
+-- longer if the pattern is long
 function generate_level(lvl)
 	local counter=0
 	local final=""
@@ -408,7 +429,12 @@ function generate_level(lvl)
 	while counter < num_bricks do
 		for i=1,#lvl do
 			cur=sub(lvl,i,i)
-			if cur=="/" then
+			if cur=="x" then
+				while counter < num_bricks do
+					final = final.."e"
+					counter+=1
+				end
+			elseif cur=="/" then
 				y=flr(counter/num_columns)*num_columns
 				x=counter-y
 				if x>0 or prev=="/" then
@@ -433,6 +459,7 @@ function generate_level(lvl)
 	return final
 end
 
+-- check if all bricks are cleared
 function level_complete()
 	for i=1,#brick_v do
 		if brick_v[i] then return false end
@@ -440,6 +467,8 @@ function level_complete()
 	return true
 end
 
+-- increment level, init new
+-- bricks and reset paddle/ball
 function next_level()
 	serve_ball()
 	level+=1
