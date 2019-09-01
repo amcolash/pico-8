@@ -36,6 +36,7 @@ function start_game()
 	lives=3
 	score=0
 	combo=1
+	level=1
 	init_paddle()
 	init_ball()
 	init_bricks()
@@ -52,7 +53,6 @@ end
 function lose_life()
 	sfx(2)
 	lives -= 1
-	combo = 0
 	wait(20)
 	
 	if lives > 0 then
@@ -106,8 +106,10 @@ end
 
 -- gameover mode text
 function draw_gameover()
-	-- clear hearts on game over
-	rectfill(115,0,127,7,0)
+	if lives == 0 then
+		-- clear hearts on game over
+		rectfill(100,0,127,7,0)
+	end
 	
 	-- bar in the middle for text
 	rectfill(0,vcenter()-11,127,vcenter()+15,0)
@@ -128,9 +130,11 @@ function init_ball()
 	ball_r=2
 	ball_a=1
 	ball_sticky=true
+	combo=1
 end
 
 function serve_ball()
+	init_paddle()
 	init_ball()
 end
 
@@ -348,8 +352,8 @@ function init_bricks()
 	brick_h=4
 	brick_c=12
 
-	local level=generate_level(level_1)
-	local i=0
+	local level=generate_level(levels[level])
+	i=0
 	for y=1,num_rows do
 		for x=1,num_columns do
 			i+=1
@@ -361,9 +365,9 @@ function init_bricks()
 end
 
 function update_bricks()
--- noop for now... they are
--- not sentient - only the
--- ball knows what is happening
+	if level_complete() then
+		next_level()
+	end
 end
 
 -- when a brick is hit, play
@@ -387,12 +391,19 @@ end
 -->8
 -- levels
 
-level_1="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
+l1="e4b//////"
+l2="e5b//////"
+l3="e4b//////"
+l4="e5b//////"
+--l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
+--l3="be"
+--l4="b2e2b2/"
+levels={l1,l2,l3,l4}
 
 function generate_level(lvl)
 	local counter=0
 	local final=""
-	local i,j,x,y,prev,cur
+	local prev,cur
 	
 	while counter < num_bricks do
 		for i=1,#lvl do
@@ -400,7 +411,7 @@ function generate_level(lvl)
 			if cur=="/" then
 				y=flr(counter/num_columns)*num_columns
 				x=counter-y
-				if x>0 then
+				if x>0 or prev=="/" then
 					for j=x,num_columns-1 do
 						final = final.."e"
 						counter+=1
@@ -420,6 +431,23 @@ function generate_level(lvl)
 	end
 	
 	return final
+end
+
+function level_complete()
+	for i=1,#brick_v do
+		if brick_v[i] then return false end
+	end
+	return true
+end
+
+function next_level()
+	serve_ball()
+	level+=1
+	if level <= #levels then
+		init_bricks()
+	else
+		mode="gameover"
+	end
 end
 -->8
 -- ?
