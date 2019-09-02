@@ -44,6 +44,7 @@ function start_game()
 	init_paddle()
 	init_ball()
 	init_bricks()
+	init_powerups()
 end
 
 -- update the peons
@@ -51,12 +52,14 @@ function update_game()
 	update_paddle()
 	update_ball()
 	update_bricks()	
+	update_powerups()
 end
 
 -- lose life and handle gameover
 function lose_life()
 	sfx(2)
 	lives -= 1
+	reset_explosions()
 	wait(20)
 	
 	if lives > 0 then
@@ -94,6 +97,7 @@ function draw_game()
 	draw_bricks()
 	draw_paddle()
 	draw_ball()
+	draw_powerups()
 end
 
 -- todo: move to different tab?
@@ -158,6 +162,7 @@ end
 function serve_ball()
 	init_paddle()
 	init_ball()
+	init_powerups()
 end
 
 function update_ball()
@@ -183,7 +188,7 @@ function update_ball()
 	local prev_x,prev_y,scale
 	scale = 1
 	if btn(4) then scale = 2 end
-	if btn(5) then scale = 0.5 end
+	if btn(5) then scale = 0.1 end
 
 	-- figure out where the ball will go
 	prev_x = ball_x
@@ -465,7 +470,8 @@ function brick_hit(i,add_combo)
 			if status==7 then
 				-- powerup
 				brick_s[i]=0
-				sfx(10)
+				spawn_powerup(i)
+				sfx(min(combo-1,6) + 3)
 			elseif status==8 then
 				-- explode
 				brick_s[i]=10
@@ -534,7 +540,7 @@ end
 -- i.e "b5/" -> 5 blocks, 4 empty, repeated each row
 -- "b2e2x" -> 2 blocks, 2 empty, rest of level empty
 
-l1="ie3xxxz"
+l1="ie3pepep/i4/i5/i6/i7/i8z"
 --l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
 --l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
 --l3="be"
@@ -600,6 +606,8 @@ end
 function next_level()
 	-- re-render the scene after
 	-- all bricks have been cleared
+	-- and powerups are gone
+	init_powerups()
 	_draw()
 
 	level+=1
@@ -613,7 +621,66 @@ function next_level()
 	end
 end
 -->8
--- ?
+-- powerups
+
+function init_powerups()
+	powerup_x={}
+	powerup_y={}
+	powerup_t={}
+end
+
+function spawn_powerup(i)
+	add(powerup_x,brick_x[i])
+	add(powerup_y,brick_y[i])
+	add(powerup_t,1)
+end
+
+function update_powerups()
+	for i=1,#powerup_t do
+		if powerup_t[i] ~= 0 then
+			local scale=1
+			if btn(5) then scale = 0.3 end
+			powerup_y[i] += 0.7*scale
+			if powerup_collide(i) then
+				powerup_activate(i)
+			end
+			if powerup_y[i] > 127 then
+				powerup_t[i] = 0
+			end
+		end
+	end
+end
+
+function powerup_collide(i)
+	local x=powerup_x[i]
+	local y=powerup_y[i]
+	
+	if x > pad_x+pad_w or
+				x+16 < pad_x or
+				y+8 < pad_y or
+				y > pad_y+pad_h then
+		return false
+	end
+	
+	return true
+end
+
+function powerup_activate(i)
+	powerup_t[i] = 0
+	sfx(12)
+end
+
+function get_powerup_sprite(i)
+	return 1 -- todo
+end
+
+function draw_powerups()
+	for i=1,#powerup_t do
+		if powerup_t[i] ~= 0 then
+			spr(get_powerup_sprite(i),powerup_x[i],powerup_y[i])
+		end
+	end
+end
 -->8
 -- utils
 
@@ -662,7 +729,7 @@ function wait(a)
 	for i = 1,a do flip() end
 end
 
--- string positioning --
+-- string utils --
 function hcenter(s)
   -- screen center minus the
   -- string length times the 
@@ -679,6 +746,34 @@ function vcenter()
   return 61
 end
 
+-- converts anything to string, even nested tables
+function tostring(any)
+	if type(any)=="function" then
+		return "function"
+	end
+	if any==nil then
+		return "nil"
+	end
+	if type(any)=="string" then
+		return any
+	end
+	if type(any)=="boolean" then
+		if any then return "true" end
+		return "false"
+	end
+	if type(any)=="table" then
+		local str = "{ "
+		for k,v in pairs(any) do
+			str=str..tostring(k)..":"..tostring(v).." "
+		end
+		return str.."}"
+	end
+	if type(any)=="number" then
+		return ""..any
+	end
+	return "unkown" -- should never show
+end
+
 -- math utils --
 function sign(n)
 	if n>0 then return 1 end
@@ -693,11 +788,12 @@ function round(n)
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000077777700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700799889990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000999899990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000999889990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700999989990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000099889900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
 0001000018360183601835018330183201831018300183001d700187001570013700117000f7000d7000870003700107000870008700087000870007700077000770007700077000770000000000000000000000
 00010000243602436024350243302432024310173000d3000b3000d3000f300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000000000000
@@ -711,3 +807,4 @@ __sfx__
 000200003234035360393503d33035320383503e340383203b3303f31000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
 000200002f6502e6502964024640216401e6301b63019630176301563013630116300f6200d6200b6200762005620026100061008600056000160000300003000030000300003000030000300003000030000300
 000200002b350313303c32028300233001a3001830000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300
+000200001d3602336026350223401a34016330113301133014330163201e320283202d3202a3101f3103230036300383003e30000000000000000000000000000000000000000000000000000000000000000000
