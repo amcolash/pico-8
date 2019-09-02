@@ -387,8 +387,26 @@ end
 
 -- check the level is complete
 function update_bricks()
+	update_explosions()
 	if level_complete() then
 		next_level()
+	end
+end
+
+function update_explosions()
+	-- handle sploders
+	for i=1,#brick_s do
+		if brick_s[i] > 9 then
+			-- increment value changes
+			-- speed of flashing
+			brick_s[i] += 0.07
+			
+			-- check value changes time
+			-- before explosion trigger
+			if brick_s[i] > 17 then
+				explode_brick(i)
+			end
+		end
 	end
 end
 
@@ -399,6 +417,8 @@ function get_brick_status(t)
 	elseif t=="n" then return 2
 	-- 3 hit
 	elseif t=="m" then return 3
+	-- powerup
+	elseif t=="p" then return 7
 	-- exploding
 	elseif t=="x" then return 8
 	-- invincible
@@ -410,9 +430,16 @@ end
 -- get color of brick based on
 -- brick status
 function get_brick_color(s)
-	if s==8 then return 8
-	elseif s==9 then return 5
-	else return level_color[level]+s-1 end
+	-- powerup
+	if s==7 then return level_color[level]
+	-- exploding brick
+	elseif s==8 then return 9
+	-- invincible
+	elseif s==9 then return 6
+	-- exploding state
+	elseif s>9 then return flr(s) % 2 == 0 and 8 or 9
+	-- normal, based on hits left
+	else return level_color[(level+s-1)%#level_color] end
 end
 
 -- when a brick is hit, play
@@ -427,20 +454,14 @@ function brick_hit(i)
 			-- invincible
 			sfx(11)
 		else
-			if status==8 then
-				-- explode
+			if status==7 then
+				-- powerup
 				brick_s[i]=0
 				sfx(10)
-
-				-- hit surrounding bricks
-				brick_hit(i-num_columns-1)
-				brick_hit(i-num_columns)
-				brick_hit(i-num_columns+1)
-				brick_hit(i-1)
-				brick_hit(i+1)
-				brick_hit(i+num_columns-1)
-				brick_hit(i+num_columns)
-				brick_hit(i+num_columns+1)
+			elseif status==8 then
+				-- explode
+				brick_s[i]=10
+				sfx(min(combo-1,6) + 3)
 			else
 				-- normal
 				brick_s[i]-=1
@@ -451,6 +472,22 @@ function brick_hit(i)
 			combo += 1
 		end
 	end
+end
+
+function explode_brick(i)
+	-- explode
+	brick_s[i]=0
+	sfx(10)
+	
+	-- hit surrounding bricks
+	brick_hit(i-num_columns-1)
+	brick_hit(i-num_columns)
+	brick_hit(i-num_columns+1)
+	brick_hit(i-1)
+	brick_hit(i+1)
+	brick_hit(i+num_columns-1)
+	brick_hit(i+num_columns)
+	brick_hit(i+num_columns+1)
 end
 
 -- let the magic happen
@@ -476,6 +513,7 @@ end
 -- b -> normal block
 -- n -> 2 health block
 -- m -> 3 health block
+-- p -> powerup
 -- i -> invincible block
 -- x -> exploding
 -- e -> empty
@@ -486,12 +524,13 @@ end
 -- i.e "b5/" -> 5 blocks, 4 empty, repeated each row
 -- "b2e2x" -> 2 blocks, 2 empty, rest of level empty
 
-l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
+l1="ie4xz"
+--l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
 --l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
 --l3="be"
 --l4="b2e2b2/"
 levels={l1,l1,l1,l1}
-level_color={12,11,9,14}
+level_color={12,15,10,11,13,14}
 
 -- gnerate a level based on the
 -- syntax that is defined above
@@ -541,7 +580,7 @@ end
 -- check if all bricks are cleared
 function level_complete()
 	for i=1,#brick_s do
-		if brick_s[i]>0 and brick_s[i]<8 then return false end
+		if brick_s[i]>0 and brick_s[i]~=9 then return false end
 	end
 	return true
 end
@@ -549,9 +588,14 @@ end
 -- increment level, init new
 -- bricks and reset paddle/ball
 function next_level()
-	serve_ball()
+	-- re-render the scene after
+	-- all bricks have been cleared
+	_draw()
+
 	level+=1
-	if level <= #levels then
+	if level <= #levels then		
+		-- setup for next level
+		serve_ball()
 		init_bricks()
 		mode="stageclear"
 	else
