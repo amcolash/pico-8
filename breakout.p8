@@ -267,7 +267,7 @@ function test_ball_bricks(prev_x,prev_y)
 			-- brick was hit, now figure
 			-- out if we need to bounce
 			-- and in what direction
-			brick_hit(i)
+			brick_hit(i,true)
 			if collided_vertical(prev_y,ball_y,brick_y[i]-ball_r,brick_y[i]+brick_h+ball_r) and not has_bounced then
 					bounce_y()
 			end
@@ -393,6 +393,14 @@ function update_bricks()
 	end
 end
 
+function reset_explosions()
+	for i=1,#brick_s do
+		if brick_s[i] > 9 then
+			brick_s[i] = 8
+		end
+	end
+end
+
 function update_explosions()
 	-- handle sploders
 	for i=1,#brick_s do
@@ -445,7 +453,7 @@ end
 -- when a brick is hit, play
 -- a sound, increment combo and
 -- increase score
-function brick_hit(i)
+function brick_hit(i,add_combo)
 	if i <=0 or i>num_bricks then return end
 	
 	local status=brick_s[i]
@@ -469,7 +477,9 @@ function brick_hit(i)
 			end
 			
 			score += 10*combo
-			combo += 1
+			if add_combo then
+				combo += 1
+			end
 		end
 	end
 end
@@ -480,14 +490,14 @@ function explode_brick(i)
 	sfx(10)
 	
 	-- hit surrounding bricks
-	brick_hit(i-num_columns-1)
-	brick_hit(i-num_columns)
-	brick_hit(i-num_columns+1)
-	brick_hit(i-1)
-	brick_hit(i+1)
-	brick_hit(i+num_columns-1)
-	brick_hit(i+num_columns)
-	brick_hit(i+num_columns+1)
+	brick_hit(i-num_columns-1,false)
+	brick_hit(i-num_columns,false)
+	brick_hit(i-num_columns+1,false)
+	brick_hit(i-1,false)
+	brick_hit(i+1,false)
+	brick_hit(i+num_columns-1,false)
+	brick_hit(i+num_columns,false)
+	brick_hit(i+num_columns+1,false)
 end
 
 -- let the magic happen
@@ -524,7 +534,7 @@ end
 -- i.e "b5/" -> 5 blocks, 4 empty, repeated each row
 -- "b2e2x" -> 2 blocks, 2 empty, rest of level empty
 
-l1="ie4xz"
+l1="ie3xxxz"
 --l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
 --l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
 --l3="be"
