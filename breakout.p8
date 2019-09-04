@@ -11,6 +11,7 @@ end
 function _update60()
 	if mode=="game" then
 		update_game()
+		if btn(4) then wait(60) end
 	elseif mode=="start" then
 		update_start()
 	elseif mode=="gameover" then
@@ -61,7 +62,7 @@ function lose_life()
 	lives -= 1
 	reset_explosions()
 	wait(20)
-	
+
 	if lives > 0 then
 		serve_ball()
 	else
@@ -125,10 +126,10 @@ function draw_gameover()
 		-- clear hearts on game over
 		rectfill(100,0,127,7,0)
 	end
-	
+
 	-- bar in the middle for text
 	rectfill(0,vcenter()-11,127,vcenter()+15,0)
-	
+
 	local text1="game over"
 	local text2="press ❎ to restart"
 	print(text1,hcenter(text1),vcenter()-7,lives > 0 and 11 or 8)
@@ -153,6 +154,7 @@ function init_ball()
 	ball_y=pad_y-pad_h
 	ball_dx=1
 	ball_dy=-1
+	ball_scalar=1
 	ball_r=2
 	ball_a=1
 	ball_sticky=true
@@ -170,7 +172,7 @@ function update_ball()
 	-- then follow the paddle
 	if ball_sticky then
 		ball_x=pad_x+pad_w/2
-		
+
 		-- direction based on l/r
 		if btn(⬅️) then ball_dx=-1 end
 		if btn(➡️) then ball_dx=1 end
@@ -179,26 +181,26 @@ function update_ball()
 		if btnp(5) then
 			ball_sticky=false
 		end
-		
+
 		-- don't update ball yet
 		return
 	end
 
 	-- fancy speedup/slowdown value
 	local prev_x,prev_y,scale
-	scale = 1
-	if btn(4) then scale = 2 end
-	if btn(5) then scale = 0.1 end
+	scale = ball_scalar
+	--if btn(4) then scale = 2 end
+	--if btn(5) then scale = 0.1 end
 
 	-- figure out where the ball will go
 	prev_x = ball_x
 	ball_x += ball_dx * scale
 	prev_y = ball_y
 	ball_y += ball_dy * scale
-	
+
 	-- check if the ball hits screen
 	test_ball_screen(prev_x,prev_y)
-	
+
 	-- check if ball hit paddle
 	test_ball_paddle(prev_x,prev_y)
 
@@ -215,7 +217,7 @@ function test_ball_screen(prev_x,prev_y)
 		ball_x = mid(ball_r,ball_x,127-ball_r)
 	end
 	-- bounce off top of screen
-	if ball_y < ball_r+9 then
+	if ball_y < ball_r+8 then
 		bounce_y(0)
 		ball_y = mid(ball_r,ball_y,127-ball_r)
 	end
@@ -231,7 +233,7 @@ function test_ball_paddle(prev_x,prev_y)
 	if ball_collide(pad_x,pad_y,pad_w,pad_h) then
 		-- reset combo when paddle hit
 		combo=1
-		
+
 		if collided_vertical(prev_y,ball_y,pad_y-ball_r,pad_y+pad_h+ball_r) then
 			-- do some fancy stuff to
 			-- make bouncing feel nice
@@ -262,22 +264,34 @@ end
 -- check if the ball hit any
 -- bricks, but only bounce off
 -- of the first one each frame
-function test_ball_bricks(prev_x,prev_y)		
+function test_ball_bricks(prev_x,prev_y)
 	-- only bounce once per frame
 	local has_bounced=false
-	
+	local x_bounce=false
+	local y_bounce=false
+
 	-- for each brick...
 	for i=1,num_bricks do
+		brick_c[i]=1
 		if brick_s[i]>0 and	ball_collide(brick_x[i],brick_y[i],brick_w,brick_h) then
 			-- brick was hit, now figure
 			-- out if we need to bounce
 			-- and in what direction
 			brick_hit(i,true)
+			brick_c[i]=0
 			if collided_vertical(prev_y,ball_y,brick_y[i]-ball_r,brick_y[i]+brick_h+ball_r) and not has_bounced then
-					bounce_y()
+				bounce_y()
+				y_bounce=true
 			end
 			if collided_horizontal(prev_x,ball_x,brick_x[i]-ball_r,brick_x[i]+brick_w+ball_r) and not has_bounced then
 				bounce_x()
+				x_bounce=true
+			end
+
+			-- stuck inside block?
+			if not x_bounce and not y_bounce then
+				bounce_x()
+				bounce_y()
 			end
 			has_bounced=true
 		end
@@ -310,7 +324,7 @@ function ball_collide(x,y,w,h)
 			ball_y+ball_r < y then
 		return false
 	end
-	
+
 	return true
 end
 
@@ -353,7 +367,7 @@ end
 function update_paddle()
 	pad_dx *= 0.5
 	if abs(pad_dx) < 0.1 then pad_dx = 0 end
-	
+
 	if btn(⬅️) then pad_dx=-4 end
 	if btn(➡️) then pad_dx=4 end	
 
@@ -375,6 +389,7 @@ function init_bricks()
 	brick_x={}
 	brick_y={}
 	brick_s={}
+	brick_c={}
 	brick_w=12
 	brick_h=4
 
@@ -386,6 +401,7 @@ function init_bricks()
 			add(brick_x,2+(x-1)*(brick_w+2))
 			add(brick_y,10+(6*y))
 			add(brick_s,get_brick_status(sub(level,i,i)))
+			add(brick_c,1)
 		end
 	end
 end
@@ -413,7 +429,7 @@ function update_explosions()
 			-- increment value changes
 			-- speed of flashing
 			brick_s[i] += 0.07
-			
+
 			-- check value changes time
 			-- before explosion trigger
 			if brick_s[i] > 17 then
@@ -460,7 +476,7 @@ end
 -- increase score
 function brick_hit(i,add_combo)
 	if i <=0 or i>num_bricks then return end
-	
+
 	local status=brick_s[i]
 	if status > 0 then
 		if status==9 then
@@ -481,7 +497,7 @@ function brick_hit(i,add_combo)
 				brick_s[i]-=1
 				sfx(min(combo-1,6) + 3)
 			end
-			
+
 			score += 10*combo
 			if add_combo then
 				combo += 1
@@ -510,7 +526,7 @@ end
 function draw_bricks()
 	for i=1,num_bricks do
 		if brick_s[i]>0 then
-			rectfill(brick_x[i],brick_y[i],brick_x[i]+brick_w,brick_y[i]+brick_h,get_brick_color(brick_s[i]))
+			rectfill(brick_x[i],brick_y[i],brick_x[i]+brick_w,brick_y[i]+brick_h,get_brick_color(brick_s[i])*brick_c[i])
 			-- fancy bricks?
 			pset(brick_x[i],brick_y[i],1)
 			pset(brick_x[i]+brick_w,brick_y[i],1)
@@ -540,7 +556,9 @@ end
 -- i.e "b5/" -> 5 blocks, 4 empty, repeated each row
 -- "b2e2x" -> 2 blocks, 2 empty, rest of level empty
 
-l1="ie3pepep/i4/i5/i6/i7/i8z"
+--l1="bi8/i9/ie7i/ie4i2ei/ie5iei/i7ei"
+l1="m3e3m3/m4e3m2/m5e3m/m6/m7/m7/"
+--l1="ie3pepep/bi4/i5/i6e2i/i7/bi6/z"
 --l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
 --l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
 --l3="be"
@@ -611,7 +629,7 @@ function next_level()
 	_draw()
 
 	level+=1
-	if level <= #levels then		
+	if level <= #levels then
 		-- setup for next level
 		serve_ball()
 		init_bricks()
@@ -627,12 +645,14 @@ function init_powerups()
 	powerup_x={}
 	powerup_y={}
 	powerup_t={}
+	powerup_h={}
 end
 
 function spawn_powerup(i)
 	add(powerup_x,brick_x[i])
 	add(powerup_y,brick_y[i])
 	add(powerup_t,1)
+	add(powerup_h,0)
 end
 
 function update_powerups()
@@ -641,11 +661,19 @@ function update_powerups()
 			local scale=1
 			if btn(5) then scale = 0.3 end
 			powerup_y[i] += 0.7*scale
+			
 			if powerup_collide(i) then
 				powerup_activate(i)
 			end
 			if powerup_y[i] > 127 then
 				powerup_t[i] = 0
+			end
+		end
+		if powerup_h[i] > 0 then
+			powerup_h[i] -= 1/60
+
+			if powerup_h[i] < 0 then
+				ball_scalar = 1
 			end
 		end
 	end
@@ -654,20 +682,24 @@ end
 function powerup_collide(i)
 	local x=powerup_x[i]
 	local y=powerup_y[i]
-	
+
 	if x > pad_x+pad_w or
 				x+16 < pad_x or
-				y+8 < pad_y or
+				y+6 < pad_y or
 				y > pad_y+pad_h then
 		return false
 	end
-	
+
 	return true
 end
 
 function powerup_activate(i)
 	powerup_t[i] = 0
+	powerup_h[i] = 7 -- 7 seconds?
 	sfx(12)
+	
+		-- switch based on type
+	ball_scalar = 0.5
 end
 
 function get_powerup_sprite(i)
@@ -678,6 +710,10 @@ function draw_powerups()
 	for i=1,#powerup_t do
 		if powerup_t[i] ~= 0 then
 			spr(get_powerup_sprite(i),powerup_x[i],powerup_y[i])
+		end
+		if powerup_h[i] > 0 then
+			print(powerup_h[i],10,92+7*i)
+			spr(get_powerup_sprite(i),0,90+7*i)
 		end
 	end
 end
