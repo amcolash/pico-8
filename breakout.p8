@@ -41,7 +41,6 @@ function start_game()
 	lives=3
 	score=0
 	combo=1
-	combo2=1
 	level=1
 	init_paddle()
 	init_ball()
@@ -279,21 +278,24 @@ function test_ball_bricks(prev_x,prev_y)
 			-- and in what direction
 			brick_hit(i,true)
 			brick_c[i]=0
-			if collided_vertical(prev_y,ball_y,brick_y[i]-ball_r,brick_y[i]+brick_h+ball_r) and not has_bounced then
-				bounce_y()
-				y_bounce=true
-			end
-			if collided_horizontal(prev_x,ball_x,brick_x[i]-ball_r,brick_x[i]+brick_w+ball_r) and not has_bounced then
-				bounce_x()
-				x_bounce=true
-			end
 
-			-- stuck inside block?
-			if not x_bounce and not y_bounce then
-				bounce_x()
-				bounce_y()
+			if not megaball or brick_s[i]==9 then
+				if collided_vertical(prev_y,ball_y,brick_y[i]-ball_r,brick_y[i]+brick_h+ball_r) and not has_bounced then
+					bounce_y()
+					y_bounce=true
+				end
+				if collided_horizontal(prev_x,ball_x,brick_x[i]-ball_r,brick_x[i]+brick_w+ball_r) and not has_bounced then
+					bounce_x()
+					x_bounce=true
+				end
+
+				-- stuck inside block?
+				if not x_bounce and not y_bounce then
+					bounce_x()
+					bounce_y()
+				end
+				has_bounced=true
 			end
-			has_bounced=true
 		end
 	end
 end
@@ -468,7 +470,7 @@ end
 -- brick status
 function get_brick_color(s)
 	-- powerup
-	if s==7 then return level_color[level]
+	if s==7 then return 8
 	-- exploding brick
 	elseif s==8 then return 9
 	-- invincible
@@ -557,12 +559,13 @@ function init_powerups()
 	combo2=1
 	ball_scalar=1
 	tween_pad_w=base_pad_w
+	megaball=false
 end
 
 function spawn_powerup(i)
 	add(powerup_x,brick_x[i])
 	add(powerup_y,brick_y[i])
-	add(powerup_t,5)
+	add(powerup_t,6)
 	--add(powerup_t,flr(rnd(2))+1)
 	add(powerup_h,0)
 end
@@ -594,6 +597,8 @@ function update_powerups()
 				elseif t==4 or t==5 then
 					tween_pad_w = base_pad_w
 					combo2=1
+				elseif t==6 then
+					megaball=false
 				end
 			end
 		end
@@ -655,6 +660,9 @@ function powerup_activate(i)
 		-- small paddle
 		tween_pad_w = 0.5 * base_pad_w
 		combo2=2
+	elseif t == 6 then
+		-- megaball
+		megaball=true
 	end
 	
 	powerup_y[i] = -1
@@ -701,8 +709,9 @@ end
 
 --l1="bi8/i9/ie7i/ie4i2ei/ie5iei/i7ei"
 --l1="m3e3m3/m4e3m2/m5e3m/m6/m7/m7/"
-l1="ie3pepep/bi4/i5/i6e2i/i7/bi6/z"
+--l1="ie3pepep/bi4/i5/i6e2i/i7/bi6/z"
 --l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
+l1="b9/b9/b9/b9/pb8/b8p"
 --l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
 --l3="be"
 --l4="b2e2b2/"
