@@ -556,10 +556,7 @@ end
 -- powerups
 
 function init_powerups()
-	powerup_x={}
-	powerup_y={}
-	powerup_t={}
-	powerup_h={}
+	powerups={}
 	
 	-- reset powerup boosts
 	combo=1
@@ -570,35 +567,38 @@ function init_powerups()
 end
 
 function spawn_powerup(i)
-	add(powerup_x,brick_x[i])
-	add(powerup_y,brick_y[i])
-	add(powerup_t,6)
-	--add(powerup_t,flr(rnd(2))+1)
-	add(powerup_h,0)
+	local powerup = {}
+	powerup.x=brick_x[i]
+	powerup.y=brick_y[i]
+	--powerup.type=flr(rnd(2))+1
+	powerup.type=6
+	powerup.time=0
+	add(powerups,powerup)
 end
 
 function update_powerups()
-	for i=1,#powerup_t do
-		if powerup_y[i] ~= -1 then
+	for i=1,#powerups do
+		local powerup=powerups[i]
+		if powerup.y ~= -1 then
 			local scale=1
 			if btn(5) then scale = 0.3 end
-			powerup_y[i] += 0.7*scale
+			powerup.y += 0.7*scale
 			
 			if powerup_collide(i) then
 				powerup_activate(i)
 			end
-			if powerup_y[i] > 127 then
-				powerup_y[i] = -1
+			if powerup.y > 127 then
+				powerup.y = -1
 			end
 		end
 
 		-- update time-based powerups
-		if powerup_h[i] > 0 then
-			powerup_h[i] -= 1/60
+		if powerup.time > 0 then
+			powerup.time -= 1/60
 
-			local t=powerup_t[i]
+			local t=powerup.type
 			-- if a powerup has expired
-			if powerup_h[i] < 0 then
+			if powerup.time < 0 then
 				if t==3 then
 					ball_scalar = 1
 				elseif t==4 or t==5 then
@@ -613,8 +613,8 @@ function update_powerups()
 end
 
 function powerup_collide(i)
-	local x=powerup_x[i]
-	local y=powerup_y[i]
+	local x=powerups[i].x
+	local y=powerups[i].y
 
 	if x > pad_x+pad_w or
 				x+16 < pad_x or
@@ -628,27 +628,26 @@ end
 
 function powerup_activate(i)
 	sfx(12)
-	local t = powerup_t[i]
+	local t = powerups[i].type
 
 	-- kill existing powerups before
 	-- replacing with new one
 	-- note the special check for
 	-- expand/shrink which stops
 	-- the other on activation
-	for i=1,#powerup_t do
-		local pt = powerup_t[i]
-		if powerup_h[i] > 0 then
+	for i=1,#powerups do
+		local pt = powerups[i].type
+		if powerups[i].time > 0 then
 			if t==pt or
 				((t==4 or t==5) and (pt==4 or pt==5)) then
-				powerup_h[i] = 0
-				combo2 = 1
+				powerups[i].time = 0
 			end
 		end
 	end
 
 	-- time-based powerups set up
 	-- timers here
-	if t >= 3 then powerup_h[i] = 7 end
+	if t >= 3 then powerups[i].time = 7 end
 
 	-- figure out powerup
 	if t == 1 then
@@ -663,6 +662,7 @@ function powerup_activate(i)
 	elseif t == 4 then
 		-- big paddle
 		tween_pad_w = 1.5 * base_pad_w
+		combo2 = 1
 	elseif t == 5 then
 		-- small paddle
 		tween_pad_w = 0.5 * base_pad_w
@@ -672,22 +672,22 @@ function powerup_activate(i)
 		megaball=true
 	end
 	
-	powerup_y[i] = -1
+	powerups[i].y = -1
 end
 
 function get_powerup_sprite(i)
-	local t = powerup_t[i]
+	local t = powerups[i].type
 	return 1 -- todo
 end
 
 function draw_powerups()
 	local spacer=1
-	for i=1,#powerup_t do
-		if powerup_y[i] ~= -1 then
-			spr(get_powerup_sprite(i),powerup_x[i],powerup_y[i])
+	for i=1,#powerups do
+		if powerups[i].y ~= -1 then
+			spr(get_powerup_sprite(i),powerups[i].x,powerups[i].y)
 		end
-		if powerup_h[i] > 0 then
-			print(powerup_h[i],10,92+7*spacer)
+		if powerups[i].time > 0 then
+			print(powerups[i].time,10,92+7*spacer)
 			spr(get_powerup_sprite(i),0,90+7*spacer)
 			spacer += 1
 		end
