@@ -503,8 +503,15 @@ function brick_hit(i,add_combo)
 				brick_s[i]=10
 				sfx(min(combo-1,6) + 3)
 			else
-				-- normal
-				brick_s[i]-=1
+				-- normal brick
+
+				-- speical megaball score
+				if megaball and brick_s[i] > 1 then
+					score += (brick_s[i]-1)*10*combo*combo2
+					brick_s[i]=0
+				else
+					brick_s[i]-=1
+				end
 				sfx(min(combo-1,6) + 3)
 			end
 
@@ -711,7 +718,7 @@ end
 --l1="m3e3m3/m4e3m2/m5e3m/m6/m7/m7/"
 --l1="ie3pepep/bi4/i5/i6e2i/i7/bi6/z"
 --l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
-l1="b9/b9/b9/b9/pb8/b8p"
+l1="n9/m9/n9/m9/pb8/i5b3p"
 --l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
 --l3="be"
 --l4="b2e2b2/"
