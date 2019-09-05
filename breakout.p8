@@ -41,6 +41,7 @@ function start_game()
 	lives=3
 	score=0
 	combo=1
+	combo2=1
 	level=1
 	init_paddle()
 	init_ball()
@@ -109,7 +110,7 @@ function draw_hud()
 		print("♥",120-i*7,0,8)
 	end
 	print("score: "..score,2,0,7)
-	print("combo: "..combo.."x",52,0,7)
+	print("combo: "..combo*combo2.."x",52,0,7)
 end
 
 -- start mode text
@@ -164,7 +165,6 @@ function serve_ball()
 	init_paddle()
 	init_ball()
 	init_powerups()
-	combo=1
 end
 
 function update_ball()
@@ -506,7 +506,7 @@ function brick_hit(i,add_combo)
 				sfx(min(combo-1,6) + 3)
 			end
 
-			score += 10*combo
+			score += 10*combo*combo2
 			if add_combo then
 				combo += 1
 			end
@@ -551,12 +551,18 @@ function init_powerups()
 	powerup_y={}
 	powerup_t={}
 	powerup_h={}
+	
+	-- reset powerup boosts
+	combo=1
+	combo2=1
+	ball_scalar=1
+	tween_pad_w=base_pad_w
 end
 
 function spawn_powerup(i)
 	add(powerup_x,brick_x[i])
 	add(powerup_y,brick_y[i])
-	add(powerup_t,4)
+	add(powerup_t,5)
 	--add(powerup_t,flr(rnd(2))+1)
 	add(powerup_h,0)
 end
@@ -576,15 +582,18 @@ function update_powerups()
 			end
 		end
 
+		-- update time-based powerups
 		if powerup_h[i] > 0 then
 			powerup_h[i] -= 1/60
 
 			local t=powerup_t[i]
+			-- if a powerup has expired
 			if powerup_h[i] < 0 then
-				if t == 3 then
+				if t==3 then
 					ball_scalar = 1
-				elseif t == 4 then
+				elseif t==4 or t==5 then
 					tween_pad_w = base_pad_w
+					combo2=1
 				end
 			end
 		end
@@ -611,10 +620,17 @@ function powerup_activate(i)
 
 	-- kill existing powerups before
 	-- replacing with new one
+	-- note the special check for
+	-- expand/shrink which stops
+	-- the other on activation
 	for i=1,#powerup_t do
-		if powerup_h[i] > 0 and
-					powerup_t[i] == t then
+		local pt = powerup_t[i]
+		if powerup_h[i] > 0 then
+			if t==pt or
+				((t==4 or t==5) and (pt==4 or pt==5)) then
 				powerup_h[i] = 0
+				combo2 = 1
+			end
 		end
 	end
 
@@ -622,6 +638,7 @@ function powerup_activate(i)
 	-- timers here
 	if t >= 3 then powerup_h[i] = 7 end
 
+	-- figure out powerup
 	if t == 1 then
 		-- extra life
 		lives = min(lives+1,5)
@@ -634,6 +651,10 @@ function powerup_activate(i)
 	elseif t == 4 then
 		-- big paddle
 		tween_pad_w = 1.5 * base_pad_w
+	elseif t == 5 then
+		-- small paddle
+		tween_pad_w = 0.5 * base_pad_w
+		combo2=2
 	end
 	
 	powerup_y[i] = -1
