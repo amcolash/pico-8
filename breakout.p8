@@ -158,13 +158,13 @@ function init_ball()
 	ball_r=2
 	ball_a=1
 	ball_sticky=true
-	combo=1
 end
 
 function serve_ball()
 	init_paddle()
 	init_ball()
 	init_powerups()
+	combo=1
 end
 
 function update_ball()
@@ -355,7 +355,9 @@ end
 -- always init paddle around the
 -- middle at the bottom
 function init_paddle()
-	pad_w=24
+	base_pad_w=24
+	tween_pad_w=base_pad_w
+	pad_w=base_pad_w
 	pad_h=3
 	pad_x=(127-pad_w)/2
 	pad_y=120
@@ -370,6 +372,12 @@ function update_paddle()
 
 	if btn(⬅️) then pad_dx=-4 end
 	if btn(➡️) then pad_dx=4 end	
+
+	if pad_w < tween_pad_w then
+		pad_w += 1
+	elseif pad_w > tween_pad_w then
+		pad_w -=1
+	end
 
 	pad_x += pad_dx
 	pad_x = mid(0,pad_x,127-pad_w)
@@ -651,13 +659,14 @@ end
 function spawn_powerup(i)
 	add(powerup_x,brick_x[i])
 	add(powerup_y,brick_y[i])
-	add(powerup_t,flr(rnd(2))+1)
+	add(powerup_t,4)
+	--add(powerup_t,flr(rnd(2))+1)
 	add(powerup_h,0)
 end
 
 function update_powerups()
 	for i=1,#powerup_t do
-		if powerup_t[i] ~= 0 then
+		if powerup_y[i] ~= -1 then
 			local scale=1
 			if btn(5) then scale = 0.3 end
 			powerup_y[i] += 0.7*scale
@@ -666,14 +675,20 @@ function update_powerups()
 				powerup_activate(i)
 			end
 			if powerup_y[i] > 127 then
-				powerup_t[i] = 0
+				powerup_y[i] = -1
 			end
 		end
+
 		if powerup_h[i] > 0 then
 			powerup_h[i] -= 1/60
 
+			local t=powerup_t[i]
 			if powerup_h[i] < 0 then
-				ball_scalar = 1
+				if t == 3 then
+					ball_scalar = 1
+				elseif t == 4 then
+					tween_pad_w = base_pad_w
+				end
 			end
 		end
 	end
@@ -696,17 +711,35 @@ end
 function powerup_activate(i)
 	sfx(12)
 	local t = powerup_t[i]
-	
+
+	-- kill existing powerups before
+	-- replacing with new one
+	for i=1,#powerup_t do
+		if powerup_h[i] > 0 and
+					powerup_t[i] == t then
+				powerup_h[i] = 0
+		end
+	end
+
+	-- time-based powerups set up
+	-- timers here
+	if t >= 3 then powerup_h[i] = 7 end
+
 	if t == 1 then
+		-- extra life
+		lives = min(lives+1,5)
+	elseif t == 2 then
+		-- sticky ball
+		init_ball()
+	elseif t == 3 then
 		-- slowdown
 		ball_scalar = 0.5
-		powerup_h[i] = 7
-	elseif t == 2 then
-		-- extra life
-		lives = min(lives+1, 5)
+	elseif t == 4 then
+		-- big paddle
+		tween_pad_w = 1.5 * base_pad_w
 	end
 	
-	powerup_t[i] = 0
+	powerup_y[i] = -1
 end
 
 function get_powerup_sprite(i)
@@ -715,13 +748,15 @@ function get_powerup_sprite(i)
 end
 
 function draw_powerups()
+	local spacer=1
 	for i=1,#powerup_t do
-		if powerup_t[i] ~= 0 then
+		if powerup_y[i] ~= -1 then
 			spr(get_powerup_sprite(i),powerup_x[i],powerup_y[i])
 		end
 		if powerup_h[i] > 0 then
-			print(powerup_h[i],10,92+7*i)
-			spr(get_powerup_sprite(i),0,90+7*i)
+			print(powerup_h[i],10,92+7*spacer)
+			spr(get_powerup_sprite(i),0,90+7*spacer)
+			spacer += 1
 		end
 	end
 end
