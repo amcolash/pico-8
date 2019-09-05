@@ -544,109 +544,6 @@ function draw_bricks()
 	end
 end
 -->8
--- levels
-
--- levels are created with a
--- string where different chars
--- mean different things
-
--- b -> normal block
--- n -> 2 health block
--- m -> 3 health block
--- p -> powerup
--- i -> invincible block
--- x -> exploding
--- e -> empty
--- / -> e's to end of row
--- z -> fill rest with e's
--- number -> fill based on prev
-
--- i.e "b5/" -> 5 blocks, 4 empty, repeated each row
--- "b2e2x" -> 2 blocks, 2 empty, rest of level empty
-
---l1="bi8/i9/ie7i/ie4i2ei/ie5iei/i7ei"
---l1="m3e3m3/m4e3m2/m5e3m/m6/m7/m7/"
-l1="ie3pepep/bi4/i5/i6e2i/i7/bi6/z"
---l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
---l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
---l3="be"
---l4="b2e2b2/"
-levels={l1,l1,l1,l1}
-level_color={12,15,10,11,13,14}
-
--- gnerate a level based on the
--- syntax that is defined above
--- this level is a 1d array that
--- will be used to turn on/off
--- blocks and has a length of at
--- least num_bricks, but may be
--- longer if the pattern is long
-function generate_level(lvl)
-	local counter=0
-	local final=""
-	local prev,cur
-	
-	while counter < num_bricks do
-		for i=1,#lvl do
-			cur=sub(lvl,i,i)
-			if cur=="z" then
-				while counter < num_bricks do
-					final = final.."e"
-					counter+=1
-				end
-			elseif cur=="/" then
-				y=flr(counter/num_columns)*num_columns
-				x=counter-y
-				if x>0 or prev=="/" then
-					for j=x,num_columns-1 do
-						final = final.."e"
-						counter+=1
-					end
-				end
-			elseif cur > "0" and cur <= "9" then
-				for j=1,cur-1 do
-					final = final..prev
-					counter+=1
-				end
-			else
-				final = final..cur
-				counter+=1
-			end
-			prev=cur
-		end
-	end
-	
-	return final
-end
-
--- check if all bricks are cleared
-function level_complete()
-	for i=1,#brick_s do
-		if brick_s[i]>0 and brick_s[i]~=9 then return false end
-	end
-	return true
-end
-
--- increment level, init new
--- bricks and reset paddle/ball
-function next_level()
-	-- re-render the scene after
-	-- all bricks have been cleared
-	-- and powerups are gone
-	init_powerups()
-	_draw()
-
-	level+=1
-	if level <= #levels then
-		-- setup for next level
-		serve_ball()
-		init_bricks()
-		mode="stageclear"
-	else
-		mode="gameover"
-	end
-end
--->8
 -- powerups
 
 function init_powerups()
@@ -758,6 +655,109 @@ function draw_powerups()
 			spr(get_powerup_sprite(i),0,90+7*spacer)
 			spacer += 1
 		end
+	end
+end
+-->8
+-- levels
+
+-- levels are created with a
+-- string where different chars
+-- mean different things
+
+-- b -> normal block
+-- n -> 2 health block
+-- m -> 3 health block
+-- p -> powerup
+-- i -> invincible block
+-- x -> exploding
+-- e -> empty
+-- / -> e's to end of row
+-- z -> fill rest with e's
+-- number -> fill based on prev
+
+-- i.e "b5/" -> 5 blocks, 4 empty, repeated each row
+-- "b2e2x" -> 2 blocks, 2 empty, rest of level empty
+
+--l1="bi8/i9/ie7i/ie4i2ei/ie5iei/i7ei"
+--l1="m3e3m3/m4e3m2/m5e3m/m6/m7/m7/"
+l1="ie3pepep/bi4/i5/i6e2i/i7/bi6/z"
+--l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
+--l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
+--l3="be"
+--l4="b2e2b2/"
+levels={l1,l1,l1,l1}
+level_color={12,15,10,11,13,14}
+
+-- gnerate a level based on the
+-- syntax that is defined above
+-- this level is a 1d array that
+-- will be used to turn on/off
+-- blocks and has a length of at
+-- least num_bricks, but may be
+-- longer if the pattern is long
+function generate_level(lvl)
+	local counter=0
+	local final=""
+	local prev,cur
+	
+	while counter < num_bricks do
+		for i=1,#lvl do
+			cur=sub(lvl,i,i)
+			if cur=="z" then
+				while counter < num_bricks do
+					final = final.."e"
+					counter+=1
+				end
+			elseif cur=="/" then
+				y=flr(counter/num_columns)*num_columns
+				x=counter-y
+				if x>0 or prev=="/" then
+					for j=x,num_columns-1 do
+						final = final.."e"
+						counter+=1
+					end
+				end
+			elseif cur > "0" and cur <= "9" then
+				for j=1,cur-1 do
+					final = final..prev
+					counter+=1
+				end
+			else
+				final = final..cur
+				counter+=1
+			end
+			prev=cur
+		end
+	end
+	
+	return final
+end
+
+-- check if all bricks are cleared
+function level_complete()
+	for i=1,#brick_s do
+		if brick_s[i]>0 and brick_s[i]~=9 then return false end
+	end
+	return true
+end
+
+-- increment level, init new
+-- bricks and reset paddle/ball
+function next_level()
+	-- re-render the scene after
+	-- all bricks have been cleared
+	-- and powerups are gone
+	init_powerups()
+	_draw()
+
+	level+=1
+	if level <= #levels then
+		-- setup for next level
+		serve_ball()
+		init_bricks()
+		mode="stageclear"
+	else
+		mode="gameover"
 	end
 end
 -->8
