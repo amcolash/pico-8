@@ -106,10 +106,10 @@ end
 function draw_hud()
 	rectfill(0,0,127,7,0)
 	for i=0,lives-1 do
-		print("♥",118-i*7,0,8)
+		print("♥",120-i*7,0,8)
 	end
 	print("score: "..score,2,0,7)
-	print("combo: "..combo.."x",60,0,7)
+	print("combo: "..combo.."x",52,0,7)
 end
 
 -- start mode text
@@ -557,8 +557,8 @@ end
 -- "b2e2x" -> 2 blocks, 2 empty, rest of level empty
 
 --l1="bi8/i9/ie7i/ie4i2ei/ie5iei/i7ei"
-l1="m3e3m3/m4e3m2/m5e3m/m6/m7/m7/"
---l1="ie3pepep/bi4/i5/i6e2i/i7/bi6/z"
+--l1="m3e3m3/m4e3m2/m5e3m/m6/m7/m7/"
+l1="ie3pepep/bi4/i5/i6e2i/i7/bi6/z"
 --l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
 --l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
 --l3="be"
@@ -651,7 +651,7 @@ end
 function spawn_powerup(i)
 	add(powerup_x,brick_x[i])
 	add(powerup_y,brick_y[i])
-	add(powerup_t,1)
+	add(powerup_t,flr(rnd(2))+1)
 	add(powerup_h,0)
 end
 
@@ -694,15 +694,23 @@ function powerup_collide(i)
 end
 
 function powerup_activate(i)
-	powerup_t[i] = 0
-	powerup_h[i] = 7 -- 7 seconds?
 	sfx(12)
+	local t = powerup_t[i]
 	
-		-- switch based on type
-	ball_scalar = 0.5
+	if t == 1 then
+		-- slowdown
+		ball_scalar = 0.5
+		powerup_h[i] = 7
+	elseif t == 2 then
+		-- extra life
+		lives = min(lives+1, 5)
+	end
+	
+	powerup_t[i] = 0
 end
 
 function get_powerup_sprite(i)
+	local t = powerup_t[i]
 	return 1 -- todo
 end
 
