@@ -101,7 +101,6 @@ function draw_game()
 	draw_powerups()
 end
 
--- todo: move to different tab?
 -- draw the hud on the game
 function draw_hud()
 	rectfill(0,0,127,7,0)
@@ -271,20 +270,20 @@ function test_ball_bricks(prev_x,prev_y)
 
 	-- for each brick...
 	for i=1,num_bricks do
-		brick_c[i]=1
-		if brick_s[i]>0 and	ball_collide(brick_x[i],brick_y[i],brick_w,brick_h) then
+		bricks[i].c=1
+		if bricks[i].s>0 and ball_collide(bricks[i].x,bricks[i].y,brick_w,brick_h) then
 			-- brick was hit, now figure
 			-- out if we need to bounce
 			-- and in what direction
 			brick_hit(i,true)
-			brick_c[i]=0
+			bricks[i].c=0
 
-			if not megaball or brick_s[i]==9 then
-				if collided_vertical(prev_y,ball_y,brick_y[i]-ball_r,brick_y[i]+brick_h+ball_r) and not has_bounced then
+			if not megaball or bricks[i].s==9 then
+				if collided_vertical(prev_y,ball_y,bricks[i].y-ball_r,bricks[i].y+brick_h+ball_r) and not has_bounced then
 					bounce_y()
 					y_bounce=true
 				end
-				if collided_horizontal(prev_x,ball_x,brick_x[i]-ball_r,brick_x[i]+brick_w+ball_r) and not has_bounced then
+				if collided_horizontal(prev_x,ball_x,bricks[i].x-ball_r,bricks[i].x+brick_w+ball_r) and not has_bounced then
 					bounce_x()
 					x_bounce=true
 				end
@@ -395,23 +394,22 @@ function init_bricks()
 	num_columns=9
 	num_rows=6
 	num_bricks=num_columns*num_rows
-
-	brick_x={}
-	brick_y={}
-	brick_s={}
-	brick_c={}
 	brick_w=12
 	brick_h=4
+
+	bricks={}
 
 	local level=generate_level(levels[level])
 	i=0
 	for y=1,num_rows do
 		for x=1,num_columns do
 			i+=1
-			add(brick_x,2+(x-1)*(brick_w+2))
-			add(brick_y,10+(6*y))
-			add(brick_s,get_brick_status(sub(level,i,i)))
-			add(brick_c,1)
+			local brick={}
+			brick.x=2+(x-1)*(brick_w+2)
+			brick.y=10+(6*y)
+			brick.s=get_brick_status(sub(level,i,i))
+			brick.c=1
+			add(bricks,brick)
 		end
 	end
 end
@@ -425,24 +423,24 @@ function update_bricks()
 end
 
 function reset_explosions()
-	for i=1,#brick_s do
-		if brick_s[i] > 9 then
-			brick_s[i] = 8
+	for i=1,#bricks do
+		if bricks[i].s > 9 then
+			bricks[i].s = 8
 		end
 	end
 end
 
 function update_explosions()
 	-- handle sploders
-	for i=1,#brick_s do
-		if brick_s[i] > 9 then
+	for i=1,#bricks do
+		if bricks[i].s > 9 then
 			-- increment value changes
 			-- speed of flashing
-			brick_s[i] += 0.07
+			bricks[i].s += 0.07
 
 			-- check value changes time
 			-- before explosion trigger
-			if brick_s[i] > 17 then
+			if bricks[i].s > 17 then
 				explode_brick(i)
 			end
 		end
@@ -487,7 +485,7 @@ end
 function brick_hit(i,add_combo)
 	if i <=0 or i>num_bricks then return end
 
-	local status=brick_s[i]
+	local status=bricks[i].s
 	if status > 0 then
 		if status==9 then
 			-- invincible
@@ -495,22 +493,22 @@ function brick_hit(i,add_combo)
 		else
 			if status==7 then
 				-- powerup
-				brick_s[i]=0
+				bricks[i].s=0
 				spawn_powerup(i)
 				sfx(min(combo-1,6) + 3)
 			elseif status==8 then
 				-- explode
-				brick_s[i]=10
+				bricks[i].s=10
 				sfx(min(combo-1,6) + 3)
 			else
 				-- normal brick
 
 				-- speical megaball score
-				if megaball and brick_s[i] > 1 then
-					score += (brick_s[i]-1)*10*combo*combo2
-					brick_s[i]=0
+				if megaball and bricks[i].s > 1 then
+					score += (bricks[i].s-1)*10*combo*combo2
+					bricks[i].s=0
 				else
-					brick_s[i]-=1
+					bricks[i].s-=1
 				end
 				sfx(min(combo-1,6) + 3)
 			end
@@ -525,7 +523,7 @@ end
 
 function explode_brick(i)
 	-- explode
-	brick_s[i]=0
+	bricks[i].s=0
 	sfx(10)
 	
 	-- hit surrounding bricks
@@ -542,13 +540,17 @@ end
 -- let the magic happen
 function draw_bricks()
 	for i=1,num_bricks do
-		if brick_s[i]>0 then
-			rectfill(brick_x[i],brick_y[i],brick_x[i]+brick_w,brick_y[i]+brick_h,get_brick_color(brick_s[i])*brick_c[i])
+		if bricks[i].s>0 or bricks[i].c==0 then
+			if bricks[i].s>0 then
+				rectfill(bricks[i].x,bricks[i].y,bricks[i].x+brick_w,bricks[i].y+brick_h,get_brick_color(bricks[i].s)*bricks[i].c)
+			elseif bricks[i].c==0 then
+				rectfill(bricks[i].x,bricks[i].y,bricks[i].x+brick_w,bricks[i].y+brick_h,7)
+			end
 			-- fancy bricks?
-			pset(brick_x[i],brick_y[i],1)
-			pset(brick_x[i]+brick_w,brick_y[i],1)
-			pset(brick_x[i],brick_y[i]+brick_h,1)
-			pset(brick_x[i]+brick_w,brick_y[i]+brick_h,1)
+			pset(bricks[i].x,bricks[i].y,1)
+			pset(bricks[i].x+brick_w,bricks[i].y,1)
+			pset(bricks[i].x,bricks[i].y+brick_h,1)
+			pset(bricks[i].x+brick_w,bricks[i].y+brick_h,1)
 		end
 	end
 end
@@ -568,10 +570,10 @@ end
 
 function spawn_powerup(i)
 	local powerup = {}
-	powerup.x=brick_x[i]
-	powerup.y=brick_y[i]
-	--powerup.type=flr(rnd(2))+1
-	powerup.type=6
+	powerup.x=bricks[i].x
+	powerup.y=bricks[i].y
+	powerup.type=flr(rnd(6))+1
+	--powerup.type=6
 	powerup.time=0
 	add(powerups,powerup)
 end
@@ -718,7 +720,8 @@ end
 --l1="m3e3m3/m4e3m2/m5e3m/m6/m7/m7/"
 --l1="ie3pepep/bi4/i5/i6e2i/i7/bi6/z"
 --l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
-l1="n9/m9/n9/m9/pb8/i5b3p"
+--l1="n9/m9/n9/m9/pb8/i5b3p"
+l1="b9/b9/b9/b9/p9/p9"
 --l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
 --l3="be"
 --l4="b2e2b2/"
@@ -772,8 +775,8 @@ end
 
 -- check if all bricks are cleared
 function level_complete()
-	for i=1,#brick_s do
-		if brick_s[i]>0 and brick_s[i]~=9 then return false end
+	for i=1,#bricks do
+		if bricks[i].s>0 and bricks[i].s~=9 then return false end
 	end
 	return true
 end
