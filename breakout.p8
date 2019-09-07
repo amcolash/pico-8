@@ -217,10 +217,12 @@ function update_ball()
 		-- check if the ball hit bricks
 		test_ball_bricks(ball,prev_x,prev_y)
 	end
-	
+
+	-- delete ofscreen balls, then clear the array
 	for i=1,#balls_del do
 		del(balls,balls_del[i])
 	end
+	balls_del={}
 	
 	if	#balls == 0 then
 		lose_life()
@@ -583,7 +585,8 @@ end
 
 function init_powerups()
 	powerups={}
-	
+	powerups_del={}
+
 	-- reset powerup boosts
 	combo=1
 	combo2=1
@@ -614,7 +617,7 @@ function update_powerups()
 				powerup_activate(i)
 			end
 			if powerup.y > 127 then
-				powerup.y = -1
+				add(powerups_del,powerup)
 			end
 		end
 
@@ -625,6 +628,7 @@ function update_powerups()
 			local t=powerup.type
 			-- if a powerup has expired
 			if powerup.time < 0 then
+				add(powerup_del,powerup)
 				if t==4 then
 					ball_scalar = 1
 				elseif t==5 or t==6 then
@@ -636,6 +640,13 @@ function update_powerups()
 			end
 		end
 	end
+
+	-- delete dead powerups, then clear
+	-- the array
+	for i=1,#powerups_del do
+		del(powerups,powerups_del[i])
+	end
+	powerups_del={}
 end
 
 function powerup_collide(i)
@@ -672,8 +683,13 @@ function powerup_activate(i)
 	end
 
 	-- time-based powerups set up
-	-- timers here
-	if t >= 4 then powerups[i].time = 7 end
+	-- timers here, else queue to
+	-- delete it soon
+	if t >= 4 then
+		powerups[i].time = 7
+	else
+		add(powerups_del,powerups[i])
+	end
 
 	-- figure out powerup
 	if t == 1 then
@@ -701,8 +717,6 @@ function powerup_activate(i)
 		-- megaball
 		megaball=true
 	end
-	
-	powerups[i].y = -1
 end
 
 function get_powerup_sprite(i)
@@ -713,13 +727,14 @@ end
 function draw_powerups()
 	local spacer=1
 	for i=1,#powerups do
-		if powerups[i].y ~= -1 then
-			spr(get_powerup_sprite(i),powerups[i].x,powerups[i].y)
-		end
 		if powerups[i].time > 0 then
+			-- time-based powerup
 			print(powerups[i].time,10,92+7*spacer)
 			spr(get_powerup_sprite(i),0,90+7*spacer)
 			spacer += 1
+		else
+			-- powerup falling
+			spr(get_powerup_sprite(i),powerups[i].x,powerups[i].y)
 		end
 	end
 end
