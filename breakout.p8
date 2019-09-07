@@ -43,7 +43,7 @@ function start_game()
 	combo=1
 	level=1
 	init_paddle()
-	init_ball()
+	init_ball(3)
 	init_bricks()
 	init_powerups()
 end
@@ -187,18 +187,21 @@ function update_ball()
 		-- if the ball has not launched
 		-- then follow the paddle
 		if ball_sticky then
+			-- direction based on l/r
+			if btn(⬅️) then ball.dx=-1 end
+			if btn(➡️) then ball.dx=1 end
+
+			-- figure out position to
+			-- center balls along paddle
 			local pad_mid=pad_x+pad_w/2
 			if #balls == 1 then
-				-- direction based on l/r
-				if btn(⬅️) then ball.dx=-1 end
-				if btn(➡️) then ball.dx=1 end
 				ball.x=pad_mid
 			else
 				ball.x=pad_x+((i-1)/(#balls-1))*pad_w
-				ball.dx=ball.x >= pad_mid and 1 or -1
 			end
 			
-			-- launch the ball
+			-- when pressed, launch the
+			-- balls and disable sticky
 			if btnp(5) then
 				ball_sticky=false
 			end
