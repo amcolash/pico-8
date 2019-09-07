@@ -43,7 +43,7 @@ function start_game()
 	combo=1
 	level=1
 	init_paddle()
-	init_ball(3)
+	init_ball()
 	init_bricks()
 	init_powerups()
 end
@@ -199,6 +199,8 @@ function update_ball()
 			else
 				ball.x=pad_x+((i-1)/(#balls-1))*pad_w
 			end
+			ball.y=pad_y-pad_h
+			ball.dy=-1
 			
 			-- when pressed, launch the
 			-- balls and disable sticky
@@ -622,7 +624,7 @@ function update_powerups()
 		if powerup.y ~= -1 then
 			local scale=1
 			if btn(5) then scale = 0.3 end
-			powerup.y += 0.7*scale
+			powerup.y += 0.5*scale
 			
 			if powerup_collide(i) then
 				powerup_activate(i)
