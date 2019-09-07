@@ -149,13 +149,17 @@ end
 -- ball
 
 function init_ball()
-	ball_x=pad_x+pad_w/2
-	ball_y=pad_y-pad_h
-	ball_dx=1
-	ball_dy=-1
+	balls={}
+	local ball={}
+	ball.x=pad_x+pad_w/2
+	ball.y=pad_y-pad_h
+	ball.dx=1
+	ball.dy=-1
+	ball.a=1
+	add(balls,ball)
+
 	ball_scalar=1
 	ball_r=2
-	ball_a=1
 	ball_sticky=true
 end
 
@@ -166,95 +170,99 @@ function serve_ball()
 end
 
 function update_ball()
-	-- if the ball has not launched
-	-- then follow the paddle
-	if ball_sticky then
-		ball_x=pad_x+pad_w/2
+	for i=1,#balls do
+		local ball=balls[i]
 
-		-- direction based on l/r
-		if btn(⬅️) then ball_dx=-1 end
-		if btn(➡️) then ball_dx=1 end
-		
-		-- launch the ball
-		if btnp(5) then
-			ball_sticky=false
+		-- if the ball has not launched
+		-- then follow the paddle
+		if ball_sticky then
+			ball.x=pad_x+pad_w/2
+
+			-- direction based on l/r
+			if btn(⬅️) then ball.dx=-1 end
+			if btn(➡️) then ball.dx=1 end
+			
+			-- launch the ball
+			if btnp(5) then
+				ball_sticky=false
+			end
+
+			-- don't update ball yet
+			return
 		end
 
-		-- don't update ball yet
-		return
+		-- fancy speedup/slowdown value
+		local prev_x,prev_y,scale
+		scale = ball_scalar
+		--if btn(4) then scale = 2 end
+		--if btn(5) then scale = 0.1 end
+
+		-- figure out where the ball will go
+		prev_x = ball.x
+		ball.x += ball.dx * scale
+		prev_y = ball.y
+		ball.y += ball.dy * scale
+
+		-- check if the ball hits screen
+		test_ball_screen(ball,prev_x,prev_y)
+
+		-- check if ball hit paddle
+		test_ball_paddle(ball,prev_x,prev_y)
+
+		-- check if the ball hit bricks
+		test_ball_bricks(ball,prev_x,prev_y)
 	end
-
-	-- fancy speedup/slowdown value
-	local prev_x,prev_y,scale
-	scale = ball_scalar
-	--if btn(4) then scale = 2 end
-	--if btn(5) then scale = 0.1 end
-
-	-- figure out where the ball will go
-	prev_x = ball_x
-	ball_x += ball_dx * scale
-	prev_y = ball_y
-	ball_y += ball_dy * scale
-
-	-- check if the ball hits screen
-	test_ball_screen(prev_x,prev_y)
-
-	-- check if ball hit paddle
-	test_ball_paddle(prev_x,prev_y)
-
-	-- check if the ball hit bricks
-	test_ball_bricks(prev_x,prev_y)
 end
 
 -- check if the ball hit the
 -- edges of the screen
-function test_ball_screen(prev_x,prev_y)
+function test_ball_screen(ball,prev_x,prev_y)
 	-- bounce off left/right sides
-	if ball_x > 127-ball_r or ball_x < ball_r then
-		bounce_x(0)
-		ball_x = mid(ball_r,ball_x,127-ball_r)
+	if ball.x > 127-ball_r or ball.x < ball_r then
+		bounce_x(ball,0)
+		ball.x = mid(ball_r,ball.x,127-ball_r)
 	end
 	-- bounce off top of screen
-	if ball_y < ball_r+8 then
-		bounce_y(0)
-		ball_y = mid(ball_r,ball_y,127-ball_r)
+	if ball.y < ball_r+8 then
+		bounce_y(ball,0)
+		ball.y = mid(ball_r,ball.y,127-ball_r)
 	end
 	-- lose life if ball hits bottom
-	if ball_y > 127-ball_r then
+	if ball.y > 127-ball_r then
 		lose_life()
 	end
 end
 
 -- check if the ball hit the
 -- paddle and bounce accordingly
-function test_ball_paddle(prev_x,prev_y)
-	if ball_collide(pad_x,pad_y,pad_w,pad_h) then
+function test_ball_paddle(ball,prev_x,prev_y)
+	if ball_collide(ball,pad_x,pad_y,pad_w,pad_h) then
 		-- reset combo when paddle hit
 		combo=1
 
-		if collided_vertical(prev_y,ball_y,pad_y-ball_r,pad_y+pad_h+ball_r) then
+		if collided_vertical(prev_y,ball.y,pad_y-ball_r,pad_y+pad_h+ball_r) then
 			-- do some fancy stuff to
 			-- make bouncing feel nice
 			if abs(pad_dx) > 2 then
-				if sign(ball_dx) == sign(pad_dx) then
+				if sign(ball.dx) == sign(pad_dx) then
 					-- flatten angle
-					set_ball_angle((ball_a-1)%3)
+					set_ball_angle(ball,(ball.a-1)%3)
 				else
-					if ball_ang==2 then
+					if ball.ang==2 then
 						-- normal angle
-						ball_dx = -ball_dx
+						ball.dx = -ball.dx
 					else
 						-- raise angle
-						set_ball_angle((ball_a+1)%3)
+						set_ball_angle(ball,(ball.a+1)%3)
 					end
 				end
 			else
-				set_ball_angle(1)
+				set_ball_angle(ball,1)
 			end
-			bounce_y(1)
+			bounce_y(ball,1)
 		end
-		if collided_horizontal(prev_x,ball_x,pad_x-ball_r,pad_x+pad_w+ball_r)	then
-			bounce_x(1)
+		if collided_horizontal(prev_x,ball.x,pad_x-ball_r,pad_x+pad_w+ball_r)	then
+			bounce_x(ball,1)
 		end
 	end
 end
@@ -262,7 +270,7 @@ end
 -- check if the ball hit any
 -- bricks, but only bounce off
 -- of the first one each frame
-function test_ball_bricks(prev_x,prev_y)
+function test_ball_bricks(ball,prev_x,prev_y)
 	-- only bounce once per frame
 	local has_bounced=false
 	local x_bounce=false
@@ -271,7 +279,7 @@ function test_ball_bricks(prev_x,prev_y)
 	-- for each brick...
 	for i=1,num_bricks do
 		bricks[i].c=1
-		if bricks[i].s>0 and ball_collide(bricks[i].x,bricks[i].y,brick_w,brick_h) then
+		if bricks[i].s>0 and ball_collide(ball,bricks[i].x,bricks[i].y,brick_w,brick_h) then
 			-- brick was hit, now figure
 			-- out if we need to bounce
 			-- and in what direction
@@ -279,19 +287,19 @@ function test_ball_bricks(prev_x,prev_y)
 			bricks[i].c=0
 
 			if not megaball or bricks[i].s==9 then
-				if collided_vertical(prev_y,ball_y,bricks[i].y-ball_r,bricks[i].y+brick_h+ball_r) and not has_bounced then
-					bounce_y()
+				if collided_vertical(prev_y,ball.y,bricks[i].y-ball_r,bricks[i].y+brick_h+ball_r) and not has_bounced then
+					bounce_y(ball)
 					y_bounce=true
 				end
-				if collided_horizontal(prev_x,ball_x,bricks[i].x-ball_r,bricks[i].x+brick_w+ball_r) and not has_bounced then
-					bounce_x()
+				if collided_horizontal(prev_x,ball.x,bricks[i].x-ball_r,bricks[i].x+brick_w+ball_r) and not has_bounced then
+					bounce_x(ball)
 					x_bounce=true
 				end
 
 				-- stuck inside block?
 				if not x_bounce and not y_bounce then
-					bounce_x()
-					bounce_y()
+					bounce_x(ball)
+					bounce_y(ball)
 				end
 				has_bounced=true
 			end
@@ -302,27 +310,27 @@ end
 -- set new ball angle so that
 -- it bounces in interesting
 -- ways off of the paddle
-function set_ball_angle(a)
-	ball_angle=a
+function set_ball_angle(ball,a)
+	ball.angle=a
 	if a==2 then
-		ball_dx=1.3*sign(ball_dx)
-		ball_dy=0.5*sign(ball_dy)
+		ball.dx=1.3*sign(ball.dx)
+		ball.dy=0.5*sign(ball.dy)
 	elseif a==0 then
-		ball_dx=0.5*sign(ball_dx)
-		ball_dy=1.3*sign(ball_dy)
+		ball.dx=0.5*sign(ball.dx)
+		ball.dy=1.3*sign(ball.dy)
 	else
-		ball_dx=sign(ball_dx)
-		ball_dy=sign(ball_dy)
+		ball.dx=sign(ball.dx)
+		ball.dy=sign(ball.dy)
 	end
 end
 
 -- check if the ball is within
 -- the bounds that were passed
-function ball_collide(x,y,w,h)
-	if ball_x-ball_r > x+w or
-			ball_x+ball_r < x or
-			ball_y-ball_r > y+h or
-			ball_y+ball_r < y then
+function ball_collide(ball,x,y,w,h)
+	if ball.x-ball_r > x+w or
+			ball.x+ball_r < x or
+			ball.y-ball_r > y+h or
+			ball.y+ball_r < y then
 		return false
 	end
 
@@ -333,21 +341,24 @@ end
 -- set up a bounce timer for
 -- hitting blocks so that hitting
 -- 2 does not always destroy both
-function bounce_x(fx)
-	ball_dx = -ball_dx
+function bounce_x(ball,fx)
+	ball.dx = -ball.dx
 	if fx ~= nil then sfx(fx) end
 end
 
 -- flip y dir and play sound
-function bounce_y(fx)
-	ball_dy = -ball_dy
+function bounce_y(ball,fx)
+	ball.dy = -ball.dy
 	if fx ~= nil then sfx(fx) end
 end
 
 function draw_ball()
-	circfill(round(ball_x),round(ball_y),ball_r,10)
-	if ball_sticky then
-		line(ball_x+ball_dx*4,ball_y+ball_dy*4,ball_x+ball_dx*6,ball_y+ball_dy*6,10)
+	for i=1,#balls do
+		local ball=balls[i]
+		circfill(round(ball.x),round(ball.y),ball_r,10)
+		if ball_sticky then
+			line(ball.x+ball.dx*4,ball.y+ball.dy*4,ball.x+ball.dx*6,ball.y+ball.dy*6,10)
+		end
 	end
 end
 -->8
