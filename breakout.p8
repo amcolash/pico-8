@@ -164,13 +164,24 @@ function init_ball(num)
 	ball_sticky=true
 end
 
-function spawn_ball(dx)
+function spawn_ball()
 	local ball={}
 	ball.x=pad_x+pad_w/2
 	ball.y=pad_y-pad_h
-	ball.dx=dx ~= nil and dx or 1
+	ball.dx=1
 	ball.dy=-1
-	ball.a=1
+	set_ball_angle(ball,0)
+	add(balls,ball)
+end
+
+function multi_ball()
+	local ball={}
+	local i=flr(rnd(#balls))+1
+	ball.x=balls[i].x
+	ball.y=balls[i].y
+	ball.dx=balls[i].dx
+	ball.dy=balls[i].dy
+	set_ball_angle(ball,flr(rnd(3))%3)
 	add(balls,ball)
 end
 
@@ -207,7 +218,7 @@ function update_ball()
 			if btnp(5) then
 				ball_sticky=false
 			end
-		else
+		else		
 			-- fancy speedup/slowdown value
 			local prev_x,prev_y,scale
 			scale = ball_scalar
@@ -274,14 +285,14 @@ function test_ball_paddle(ball,prev_x,prev_y)
 			if abs(pad_dx) > 2 then
 				if sign(ball.dx) == sign(pad_dx) then
 					-- flatten angle
-					set_ball_angle(ball,(ball.a-1)%3)
+					set_ball_angle(ball,(ball.angle-1)%3)
 				else
-					if ball.ang==2 then
+					if ball.angle==2 then
 						-- normal angle
 						ball.dx = -ball.dx
 					else
 						-- raise angle
-						set_ball_angle(ball,(ball.a+1)%3)
+						set_ball_angle(ball,(ball.angle+1)%3)
 					end
 				end
 			else
@@ -713,8 +724,9 @@ function powerup_activate(i)
 		init_ball(#balls)
 	elseif t == 3 then
 		-- multiball
-		spawn_ball(1)
-		spawn_ball(-1)
+		multi_ball()
+		multi_ball()
+		ball_sticky=false
 	elseif t == 4 then
 		-- slowdown
 		ball_scalar = 0.5
