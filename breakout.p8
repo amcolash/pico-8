@@ -148,10 +148,16 @@ end
 -->8
 -- ball
 
-function init_ball()
+function init_ball(num)
 	balls={}
 	balls_del={}
-	spawn_ball()
+	if num ~= nil then
+		for i=1,num do
+			spawn_ball()
+		end
+	else
+		spawn_ball()
+	end
 		
 	ball_scalar=1
 	ball_r=2
@@ -181,41 +187,43 @@ function update_ball()
 		-- if the ball has not launched
 		-- then follow the paddle
 		if ball_sticky then
-			ball.x=pad_x+pad_w/2
-
-			-- direction based on l/r
-			if btn(⬅️) then ball.dx=-1
-			elseif btn(➡️) then ball.dx=1 end
+			local pad_mid=pad_x+pad_w/2
+			if #balls == 1 then
+				-- direction based on l/r
+				if btn(⬅️) then ball.dx=-1 end
+				if btn(➡️) then ball.dx=1 end
+				ball.x=pad_mid
+			else
+				ball.x=pad_x+((i-1)/(#balls-1))*pad_w
+				ball.dx=ball.x >= pad_mid and 1 or -1
+			end
 			
 			-- launch the ball
 			if btnp(5) then
 				ball_sticky=false
 			end
-
-			-- don't update ball yet
-			return
+		else
+			-- fancy speedup/slowdown value
+			local prev_x,prev_y,scale
+			scale = ball_scalar
+			--if btn(4) then scale = 2 end
+			--if btn(5) then scale = 0.1 end
+	
+			-- figure out where the ball will go
+			prev_x = ball.x
+			ball.x += ball.dx * scale
+			prev_y = ball.y
+			ball.y += ball.dy * scale
+	
+			-- check if the ball hits screen
+			test_ball_screen(ball,prev_x,prev_y)
+	
+			-- check if ball hit paddle
+			test_ball_paddle(ball,prev_x,prev_y)
+	
+			-- check if the ball hit bricks
+			test_ball_bricks(ball,prev_x,prev_y)
 		end
-
-		-- fancy speedup/slowdown value
-		local prev_x,prev_y,scale
-		scale = ball_scalar
-		--if btn(4) then scale = 2 end
-		--if btn(5) then scale = 0.1 end
-
-		-- figure out where the ball will go
-		prev_x = ball.x
-		ball.x += ball.dx * scale
-		prev_y = ball.y
-		ball.y += ball.dy * scale
-
-		-- check if the ball hits screen
-		test_ball_screen(ball,prev_x,prev_y)
-
-		-- check if ball hit paddle
-		test_ball_paddle(ball,prev_x,prev_y)
-
-		-- check if the ball hit bricks
-		test_ball_bricks(ball,prev_x,prev_y)
 	end
 
 	-- delete ofscreen balls, then clear the array
@@ -600,7 +608,7 @@ function spawn_powerup(i)
 	powerup.x=bricks[i].x
 	powerup.y=bricks[i].y
 	powerup.type=flr(rnd(6))+1
-	powerup.type=3
+	powerup.type=flr(rnd(2))+2
 	powerup.time=0
 	add(powerups,powerup)
 end
@@ -697,7 +705,7 @@ function powerup_activate(i)
 		lives = min(lives+1,5)
 	elseif t == 2 then
 		-- sticky ball
-		init_ball()
+		init_ball(#balls)
 	elseif t == 3 then
 		-- multiball
 		spawn_ball(1)
