@@ -150,17 +150,22 @@ end
 
 function init_ball()
 	balls={}
-	local ball={}
-	ball.x=pad_x+pad_w/2
-	ball.y=pad_y-pad_h
-	ball.dx=1
-	ball.dy=-1
-	ball.a=1
-	add(balls,ball)
-
+	balls_del={}
+	spawn_ball()
+		
 	ball_scalar=1
 	ball_r=2
 	ball_sticky=true
+end
+
+function spawn_ball(dx)
+	local ball={}
+	ball.x=pad_x+pad_w/2
+	ball.y=pad_y-pad_h
+	ball.dx=dx ~= nil and dx or 1
+	ball.dy=-1
+	ball.a=1
+	add(balls,ball)
 end
 
 function serve_ball()
@@ -172,15 +177,15 @@ end
 function update_ball()
 	for i=1,#balls do
 		local ball=balls[i]
-
+		
 		-- if the ball has not launched
 		-- then follow the paddle
 		if ball_sticky then
 			ball.x=pad_x+pad_w/2
 
 			-- direction based on l/r
-			if btn(⬅️) then ball.dx=-1 end
-			if btn(➡️) then ball.dx=1 end
+			if btn(⬅️) then ball.dx=-1
+			elseif btn(➡️) then ball.dx=1 end
 			
 			-- launch the ball
 			if btnp(5) then
@@ -212,6 +217,14 @@ function update_ball()
 		-- check if the ball hit bricks
 		test_ball_bricks(ball,prev_x,prev_y)
 	end
+	
+	for i=1,#balls_del do
+		del(balls,balls_del[i])
+	end
+	
+	if	#balls == 0 then
+		lose_life()
+	end
 end
 
 -- check if the ball hit the
@@ -227,9 +240,9 @@ function test_ball_screen(ball,prev_x,prev_y)
 		bounce_y(ball,0)
 		ball.y = mid(ball_r,ball.y,127-ball_r)
 	end
-	-- lose life if ball hits bottom
+	-- delete ball when it hits bottom of screen
 	if ball.y > 127-ball_r then
-		lose_life()
+		add(balls_del,ball)
 	end
 end
 
@@ -584,7 +597,7 @@ function spawn_powerup(i)
 	powerup.x=bricks[i].x
 	powerup.y=bricks[i].y
 	powerup.type=flr(rnd(6))+1
-	--powerup.type=6
+	powerup.type=3
 	powerup.time=0
 	add(powerups,powerup)
 end
@@ -612,12 +625,12 @@ function update_powerups()
 			local t=powerup.type
 			-- if a powerup has expired
 			if powerup.time < 0 then
-				if t==3 then
+				if t==4 then
 					ball_scalar = 1
-				elseif t==4 or t==5 then
+				elseif t==5 or t==6 then
 					tween_pad_w = base_pad_w
 					combo2=1
-				elseif t==6 then
+				elseif t==7 then
 					megaball=false
 				end
 			end
@@ -652,7 +665,7 @@ function powerup_activate(i)
 		local pt = powerups[i].type
 		if powerups[i].time > 0 then
 			if t==pt or
-				((t==4 or t==5) and (pt==4 or pt==5)) then
+				((t==5 or t==6) and (pt==5 or pt==6)) then
 				powerups[i].time = 0
 			end
 		end
@@ -660,7 +673,7 @@ function powerup_activate(i)
 
 	-- time-based powerups set up
 	-- timers here
-	if t >= 3 then powerups[i].time = 7 end
+	if t >= 4 then powerups[i].time = 7 end
 
 	-- figure out powerup
 	if t == 1 then
@@ -670,17 +683,21 @@ function powerup_activate(i)
 		-- sticky ball
 		init_ball()
 	elseif t == 3 then
+		-- multiball
+		spawn_ball(1)
+		spawn_ball(-1)
+	elseif t == 4 then
 		-- slowdown
 		ball_scalar = 0.5
-	elseif t == 4 then
+	elseif t == 5 then
 		-- big paddle
 		tween_pad_w = 1.5 * base_pad_w
 		combo2 = 1
-	elseif t == 5 then
+	elseif t == 6 then
 		-- small paddle
 		tween_pad_w = 0.5 * base_pad_w
 		combo2=2
-	elseif t == 6 then
+	elseif t == 7 then
 		-- megaball
 		megaball=true
 	end
