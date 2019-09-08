@@ -174,15 +174,17 @@ function spawn_ball()
 	add(balls,ball)
 end
 
-function multi_ball()
-	local ball={}
+function multi_ball(n)
 	local i=flr(rnd(#balls))+1
-	ball.x=balls[i].x
-	ball.y=balls[i].y
-	ball.dx=balls[i].dx
-	ball.dy=balls[i].dy
-	set_ball_angle(ball,flr(rnd(3))%3)
-	add(balls,ball)
+	for j=1,n do
+		local ball={}
+		ball.x=balls[i].x
+		ball.y=balls[i].y
+		ball.dx=balls[i].dx
+		ball.dy=balls[i].dy
+		set_ball_angle(ball,(balls[i].angle+j)%3)
+		add(balls,ball)
+	end
 end
 
 function serve_ball()
@@ -269,6 +271,10 @@ function test_ball_screen(ball,prev_x,prev_y)
 	-- delete ball when it hits bottom of screen
 	if ball.y > 127-ball_r then
 		add(balls_del,ball)
+		-- play sfx when multi-ball
+		if #balls > 1 then
+			sfx(2)
+		end
 	end
 end
 
@@ -623,8 +629,8 @@ function spawn_powerup(i)
 	local powerup = {}
 	powerup.x=bricks[i].x
 	powerup.y=bricks[i].y
-	powerup.type=flr(rnd(6))+1
-	powerup.type=4
+	powerup.type=flr(rnd(7))+1
+	--powerup.type=7
 	powerup.time=0
 	add(powerups,powerup)
 end
@@ -724,8 +730,7 @@ function powerup_activate(i)
 		init_ball(#balls)
 	elseif t == 3 then
 		-- multiball
-		multi_ball()
-		multi_ball()
+		multi_ball(2)
 		ball_sticky=false
 	elseif t == 4 then
 		-- slowdown
@@ -757,9 +762,6 @@ function draw_powerups()
 			spr(powerups[i].type,powerups[i].x,powerups[i].y)
 		end
 	end
-	
-	print(#powerups,2,112)
-	print(#powerups_del,2,120)
 end
 -->8
 -- levels
