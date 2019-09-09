@@ -36,7 +36,12 @@ function _draw()
 	elseif mode=="start" then
 		draw_start()
 	elseif mode=="gameover" then
-		draw_gameover()
+		if shake > 0 then
+			draw_game()
+		else
+			camera(0,0)
+			draw_gameover()
+		end
 	elseif mode=="stageclear" then
 		draw_stageclear()
 	end
@@ -72,6 +77,10 @@ function lose_life()
 	lives -= 1
 	reset_explosions()
 	shake+=0.6
+
+	-- wait for just a moment so you
+	-- can see where the ball landed
+	sleep(5)
 
 	if lives > 0 then
 		serve_ball()
@@ -595,6 +604,10 @@ function brick_hit(i,add_combo)
 				-- explode
 				bricks[i].s=10
 				sfx(min(combo-1,6) + 3)
+			elseif status==10 then
+				-- triggered exploding
+				-- does not give combo
+				add_combo=false
 			else
 				-- normal brick
 
@@ -622,15 +635,27 @@ function explode_brick(i)
 	sfx(10)
 	shake+=0.5
 	
-	-- hit surrounding bricks
-	brick_hit(i-num_columns-1,false)
+	local right=i%9==1
+	local left=i%9==0
+
+	-- hit surrounding bricks, the left
+	-- and right sides will only trigger
+	-- their oppisite sides in explosions
+	if not right then
+		brick_hit(i-num_columns-1,false)
+		brick_hit(i-1,false)
+		brick_hit(i+num_columns-1,false)
+	end
+
+	if not left then
+		brick_hit(i-num_columns+1,false)
+		brick_hit(i+1,false)
+		brick_hit(i+num_columns+1,false)
+	end
+
+	-- always hit top and bottom if possible
 	brick_hit(i-num_columns,false)
-	brick_hit(i-num_columns+1,false)
-	brick_hit(i-1,false)
-	brick_hit(i+1,false)
-	brick_hit(i+num_columns-1,false)
 	brick_hit(i+num_columns,false)
-	brick_hit(i+num_columns+1,false)
 end
 
 -- let the magic happen
@@ -827,7 +852,8 @@ end
 --l1="bi8/i9/ie7i/ie4i2ei/ie5iei/i7ei"
 --l1="m3e3m3/m4e3m2/m5e3m/m6/m7/m7/"
 --l1="ie3pepep/bi4/i5/i6e2i/i7/bi6/z"
-l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
+--l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
+l1="b9/b9/b9/b9/x9z"
 --l1="n9/m9/n9/m9/pb8/i5b3p"
 --l1="b9/b9/b9/b9/p9/p9"
 --l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
