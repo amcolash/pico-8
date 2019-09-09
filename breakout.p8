@@ -5,13 +5,21 @@ __lua__
 
 function _init()
 	cls()
+	wait=0
+	shake=0
 	mode="start"
+	debug=""
 end
 
 function _update60()
+	if wait > 0 then
+		wait -= 1
+		return
+	end
+	
 	if mode=="game" then
 		update_game()
-		if btn(4) then wait(60) end
+		if btn(4) then wait=60 end
 	elseif mode=="start" then
 		update_start()
 	elseif mode=="gameover" then
@@ -22,6 +30,7 @@ function _update60()
 end
 
 function _draw()
+	update_shake()
 	if mode=="game" then
 		draw_game()
 	elseif mode=="start" then
@@ -31,6 +40,7 @@ function _draw()
 	elseif mode=="stageclear" then
 		draw_stageclear()
 	end
+	draw_debug()
 end
 -->8
 -- modes
@@ -61,13 +71,25 @@ function lose_life()
 	sfx(2)
 	lives -= 1
 	reset_explosions()
-	wait(20)
+	shake+=0.6
 
 	if lives > 0 then
 		serve_ball()
 	else
 		mode="gameover"
 	end
+end
+
+function update_shake()
+	shake=mid(0,shake,1)
+
+	local x = shake*(rnd()*32-16)
+	local y = shake*(rnd()*32-16)
+	shake *= 0.9
+	if shake < 0.05 then
+		shake = 0
+	end
+	camera(x,y)
 end
 
 -- only start from ❎
@@ -91,9 +113,24 @@ function update_gameover()
 	end
 end
 
+-- draw debug info when needed
+function draw_debug()
+	camera(0,0)
+	if debug ~= "" then
+		rectfill(0,0,127,7,0)		
+		print("debug: "..debug,2,0,7)
+	end
+end
+
 -- main game draw function
 function draw_game()
-	cls(1)
+	-- clear and then fill with
+	-- blue. done this way so that
+	-- camera shake shows black
+	-- borders correctly
+	cls(0)
+	rectfill(0,0,127,127,1)
+
 	draw_hud()
 	draw_bricks()
 	draw_paddle()
@@ -170,7 +207,7 @@ function spawn_ball()
 	ball.y=pad_y-pad_h
 	ball.dx=1
 	ball.dy=-1
-	set_ball_angle(ball,0)
+	set_ball_angle(ball,1)
 	add(balls,ball)
 end
 
@@ -191,6 +228,7 @@ function serve_ball()
 	init_paddle()
 	init_ball()
 	init_powerups()
+	wait=30
 end
 
 function update_ball()
@@ -274,6 +312,7 @@ function test_ball_screen(ball,prev_x,prev_y)
 		-- play sfx when multi-ball
 		if #balls > 1 then
 			sfx(2)
+			shake+=0.35
 		end
 	end
 end
@@ -581,6 +620,7 @@ function explode_brick(i)
 	-- explode
 	bricks[i].s=0
 	sfx(10)
+	shake+=0.5
 	
 	-- hit surrounding bricks
 	brick_hit(i-num_columns-1,false)
@@ -787,9 +827,9 @@ end
 --l1="bi8/i9/ie7i/ie4i2ei/ie5iei/i7ei"
 --l1="m3e3m3/m4e3m2/m5e3m/m6/m7/m7/"
 --l1="ie3pepep/bi4/i5/i6e2i/i7/bi6/z"
---l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
+l1="e4ib3/e4im3/e4ibx/e4in2/e4ib2z"
 --l1="n9/m9/n9/m9/pb8/i5b3p"
-l1="b9/b9/b9/b9/p9/p9"
+--l1="b9/b9/b9/b9/p9/p9"
 --l2="b3e3b3/b4e3b2/b5e3b/b6/b7/b8/"
 --l3="be"
 --l4="b2e2b2/"
@@ -911,8 +951,8 @@ function collided_right(prev,new,edge)
 	return prev > edge and new <= edge
 end
 
--- wait a number of frames
-function wait(a)
+-- wait a number of frames (freezing the thread)
+function sleep(a)
 	for i = 1,a do flip() end
 end
 
@@ -992,6 +1032,6 @@ __sfx__
 00020000323603836038350383303b300213001c30008300063000630000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
 00020000343603a3603a3503a3303b300213001c30008300063000630000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
 000200003234035360393503d33035320383503e340383203b3303f31000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300000000000000000
-000200002f6502e6502964024640216401e6301b63019630176301563013630116300f6200d6200b6200762005620026100061008600056000160000300003000030000300003000030000300003000030000300
+000200001d6402a65032660396503f6403663038630346302463021630296302963021620246201e6201a62014620126100f6100d610056000160000300003000030000300003000030000300003000030000300
 000200002b350313303c32028300233001a3001830000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300
 000200001d3602336026350223401a34016330113301133014330163201e320283202d3202a3101f3103230036300383003e30000000000000000000000000000000000000000000000000000000000000000000
